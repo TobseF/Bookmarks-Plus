@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title data-i18n="opt_title">Bookmarks Plus – Settings</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="options">
+  <div class="logo"><img src="icons/icon32.png" alt=""><span>Bookmarks<b>+</b> – <span data-i18n="opt_logo">Extension</span></span></div>
+
+  <div class="card">
+    <h2 data-i18n="opt_language">Language</h2>
+    <div class="row">
+      <select id="lang"></select>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="opt_connection">Connection to the app</h2>
+    <div id="state" class="muted" data-i18n="opt_checking">Checking …</div>
+    <div class="row">
+      <label style="margin:0;flex:0 0 140px"><span data-i18n="opt_port">Port</span>
+        <input id="port" type="number" min="1024" max="65535">
+      </label>
+      <button id="savePort" data-i18n="apply">Apply</button>
+      <button id="check" data-i18n="opt_check_again">Check again</button>
+      <button id="disconnect" data-i18n="opt_disconnect">Disconnect</button>
+    </div>
+    <p class="muted" data-i18n="opt_connection_hint">The app only listens on 127.0.0.1. Paired browsers can also be disconnected in the app under ⚙ → Browser extension.</p>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="opt_import_title">Import this browser's bookmarks</h2>
+    <p class="muted" data-i18n="opt_import_hint">Copies all bookmarks of this browser once into a new folder “Import …” in Bookmarks Plus.
+      Addresses that already exist are added there as links instead of duplicates. The browser bookmarks stay unchanged.</p>
+    <div class="row">
+      <button id="import" class="primary" data-i18n="opt_import_now">Import now</button>
+      <span id="importState" class="muted"></span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="opt_shortcuts">Keyboard shortcuts</h2>
+    <p class="muted" data-i18n-html="opt_shortcuts_hint">Alt+Shift+B opens the popup, Alt+Shift+S saves the current page immediately.
+      Change them under <code>chrome://extensions/shortcuts</code> (Vivaldi: Settings → Keyboard).</p>
+  </div>
+
+  <script type="module" src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+-- v7 → v8: app screenshots (e.g. SourceForge "Project Samples") and download link
+ALTER TABLE bookmark ADD COLUMN screenshot_1 TEXT;
+ALTER TABLE bookmark ADD COLUMN screenshot_2 TEXT;
+ALTER TABLE bookmark ADD COLUMN screenshot_3 TEXT;
+ALTER TABLE bookmark ADD COLUMN download_url TEXT;
+ALTER TABLE bookmark ADD COLUMN download_label TEXT;

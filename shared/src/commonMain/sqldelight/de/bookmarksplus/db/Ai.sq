@@ -1,0 +1,53 @@
+-- Not yet evaluated or still without bilingual texts (older evaluation)
+pendingAiIds:
+SELECT id FROM bookmark WHERE deleted_at IS NULL AND (ai_at IS NULL OR title_en IS NULL) ORDER BY add_date DESC, id DESC;
+
+countPendingAi:
+SELECT count(*) FROM bookmark WHERE deleted_at IS NULL AND (ai_at IS NULL OR title_en IS NULL);
+
+allActiveIds:
+SELECT id FROM bookmark WHERE deleted_at IS NULL ORDER BY add_date DESC, id DESC;
+
+forAi:
+SELECT id, url, title, description, meta_title, meta_description, page_text, readme, domain,
+       link_status, content_type, gh_stars, link_error
+FROM bookmark WHERE id = ?;
+
+setPageText:
+UPDATE bookmark SET page_text = ? WHERE id = ?;
+
+setAiResult:
+UPDATE bookmark SET ai_title = ?, summary = ?, ai_tags = ?, ai_folder = ?, ai_at = ?,
+       content_type = coalesce(content_type, ?)
+WHERE id = ?;
+
+setAiTags:
+UPDATE bookmark SET ai_tags = ? WHERE id = ?;
+
+setAiFolder:
+UPDATE bookmark SET ai_folder = ? WHERE id = ?;
+
+setAiTitle:
+UPDATE bookmark SET ai_title = ? WHERE id = ?;
+
+-- Tags suggested so far (for a consistent vocabulary)
+allAiTags:
+SELECT ai_tags FROM bookmark WHERE ai_tags IS NOT NULL AND deleted_at IS NULL;
+
+setAiTexts:
+UPDATE bookmark SET title_de = ?, title_en = ?, desc_de = ?, desc_en = ?, summary_de = ?, summary_en = ?,
+       content_type = coalesce(content_type, ?), ai_models = ?
+WHERE id = ?;
+
+setAiClassification:
+UPDATE bookmark SET ai_tags = ?, ai_folder = ?, ai_at = ? WHERE id = ?;
+
+putTagI18n:
+INSERT OR REPLACE INTO tag_i18n(name, de, en) VALUES (?, ?, ?);
+
+allTagI18n:
+SELECT name, de, en FROM tag_i18n;
+
+-- Page is only a sales/parking page now → counts as dead
+markParked:
+UPDATE bookmark SET link_error = 'parked' WHERE id = ?;

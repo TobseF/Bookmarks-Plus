@@ -1,0 +1,2 @@
+-- v4 → v5: error type of the link check
+ALTER TABLE bookmark ADD COLUMN link_error TEXT;

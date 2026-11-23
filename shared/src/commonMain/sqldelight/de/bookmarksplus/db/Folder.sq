@@ -1,0 +1,34 @@
+insertFolder:
+INSERT INTO folder(uuid, parent_id, title, position, add_date, last_modified, extra)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+root:
+SELECT * FROM folder WHERE parent_id IS NULL ORDER BY id LIMIT 1;
+
+byId:
+SELECT * FROM folder WHERE id = ?;
+
+children:
+SELECT * FROM folder WHERE parent_id = ? AND deleted_at IS NULL ORDER BY position, id;
+
+all:
+SELECT * FROM folder WHERE deleted_at IS NULL ORDER BY parent_id, position, id;
+
+maxChildPosition:
+SELECT max(pos) FROM (
+    SELECT max(position) AS pos FROM folder WHERE parent_id = :folderId
+    UNION ALL
+    SELECT max(position) AS pos FROM placement WHERE folder_id = :folderId
+);
+
+deleteFolder:
+DELETE FROM folder WHERE id = ?;
+
+renameFolder:
+UPDATE folder SET title = ?, last_modified = ? WHERE id = ?;
+
+countFolders:
+SELECT count(*) FROM folder WHERE parent_id IS NOT NULL AND deleted_at IS NULL;
+
+moveFolder:
+UPDATE folder SET parent_id = ?, position = ? WHERE id = ?;

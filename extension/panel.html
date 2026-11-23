@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bookmarks Plus</title>
+  <link rel="icon" href="icons/icon32.png">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="panel.css">
+</head>
+<body class="panel">
+  <header>
+    <div class="logo"><img src="icons/icon32.png" alt=""><span>Bookmarks<b>+</b></span></div>
+    <input id="search" type="search" placeholder="Search … #tag domain: stars:>1k" data-i18n-placeholder="pan_search" autocomplete="off" spellcheck="false">
+    <button id="savePage" class="icon" title="Save current page to the Inbox" data-i18n-title="pan_save_page">＋</button>
+    <button id="openTab" class="icon" title="Open in its own tab" data-i18n-title="pan_open_tab">⤢</button>
+    <button id="openOptions" class="icon" title="Settings" data-i18n-title="settings">⚙</button>
+  </header>
+
+  <div id="toolbar" class="toolbar">
+    <div class="seg" id="viewSeg">
+      <button data-view="tree" title="Folder tree" data-i18n-title="pan_tree_tip" data-i18n="pan_tree">🌳 Tree</button>
+      <button data-view="list" title="List" data-i18n-title="pan_list_tip" data-i18n="pan_list">☰ List</button>
+      <button data-view="grid" title="Tiles" data-i18n-title="pan_grid_tip" data-i18n="pan_grid">▦ Tiles</button>
+      <button data-view="tabs" title="Open tabs" data-i18n-title="pan_tabs_tip" data-i18n="pan_tabs">🗂 Tabs</button>
+    </div>
+    <div class="scope" id="scopeBar">
+      <button id="scope" class="chip" title="Choose folder" data-i18n-title="pan_choose_folder">📁 <span id="scopeName">All bookmarks</span> ▾</button>
+      <button id="scopeClear" class="chip x" title="All bookmarks" data-i18n-title="all_bookmarks" hidden>×</button>
+      <select id="sort" title="Sort order" data-i18n-title="pan_sort">
+        <option value="added" data-i18n="sort_added">Added</option>
+        <option value="modified" data-i18n="sort_modified">Updated</option>
+        <option value="title" data-i18n="sort_title">Title</option>
+        <option value="stars">Stars</option>
+        <option value="lastcommit" data-i18n="sort_lastcommit">Last commit</option>
+        <option value="domain">Domain</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Connection -->
+  <section id="viewOffline" class="state" hidden>
+    <p class="big" data-i18n="off_title">Bookmarks Plus is not reachable.</p>
+    <p class="muted" data-i18n="off_text">Please start the app. The extension only talks to the app on this computer.</p>
+    <button id="retry" class="primary" data-i18n="retry">Try again</button>
+  </section>
+  <section id="viewPair" class="state" hidden>
+    <p class="big" data-i18n="pair_title">Connect to the app</p>
+    <p class="muted" data-i18n="pair_text_pan">Once only: the app asks whether this browser may read and change bookmarks.</p>
+    <button id="pair" class="primary" data-i18n="connect">Connect</button>
+    <div id="pairCode" hidden>
+      <p class="muted" data-i18n="pair_code">Confirm this code in the app:</p>
+      <div class="code" id="code"></div>
+      <p class="muted" id="pairWait" data-i18n="pair_waiting">Waiting for confirmation …</p>
+    </div>
+  </section>
+
+  <main id="main" hidden>
+    <aside id="side" class="side"></aside>
+    <div id="content" class="content">
+      <div id="tree" class="tree" hidden></div>
+      <div id="list" class="list" hidden></div>
+      <div id="grid" class="grid" hidden></div>
+      <div id="tabs" class="tree" hidden></div>
+      <p id="empty" class="muted emptyMsg" hidden data-i18n="nothing_found">Nothing found.</p>
+      <button id="more" class="more" hidden data-i18n="pan_more">Load more</button>
+    </div>
+  </main>
+
+  <div id="menu" class="menu" hidden></div>
+
+  <dialog id="picker" class="dlg">
+    <form method="dialog">
+      <div class="dlgTitle" id="pickerTitle" data-i18n="pan_choose_folder">Choose folder</div>
+      <input id="pickerFilter" placeholder="Search folders …" data-i18n-placeholder="pan_search_folders" autocomplete="off" spellcheck="false">
+      <ul id="pickerList" class="pickList"></ul>
+      <div class="actions"><span></span><button value="cancel" data-i18n="cancel">Cancel</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="tagDlg" class="dlg">
+    <form method="dialog">
+      <div class="dlgTitle" id="tagDlgTitle">Tags</div>
+      <div id="tagBox" class="tagBox">
+        <input id="tagInput" list="tagList" placeholder="Enter tag, Enter" data-i18n-placeholder="tag_input" autocomplete="off" spellcheck="false">
+      </div>
+      <datalist id="tagList"></datalist>
+      <div class="actions"><button value="cancel" data-i18n="cancel">Cancel</button><button id="tagSave" value="ok" class="primary" data-i18n="save">Save</button></div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" hidden><span id="toastText"></span><button id="toastAction" hidden></button></div>
+
+  <script type="module" src="panel.js"></script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+-- v8 → v9: programs and games – clean app name, platform/system, license, package IDs, Flathub/AlternativeTo
+ALTER TABLE bookmark ADD COLUMN app_name TEXT;
+ALTER TABLE bookmark ADD COLUMN app_platforms TEXT;
+ALTER TABLE bookmark ADD COLUMN app_systems TEXT;
+ALTER TABLE bookmark ADD COLUMN app_license TEXT;
+ALTER TABLE bookmark ADD COLUMN pkg_winget TEXT;
+ALTER TABLE bookmark ADD COLUMN pkg_choco TEXT;
+ALTER TABLE bookmark ADD COLUMN pkg_brew TEXT;
+ALTER TABLE bookmark ADD COLUMN pkg_npm TEXT;
+ALTER TABLE bookmark ADD COLUMN pkg_scoop TEXT;
+ALTER TABLE bookmark ADD COLUMN flathub_url TEXT;
+ALTER TABLE bookmark ADD COLUMN alternativeto_url TEXT;
+ALTER TABLE bookmark ADD COLUMN flathub_installs INTEGER;
+ALTER TABLE bookmark ADD COLUMN flathub_download_size INTEGER;
+ALTER TABLE bookmark ADD COLUMN flathub_installed_size INTEGER;
+ALTER TABLE bookmark ADD COLUMN app_name_source TEXT;
+ALTER TABLE bookmark ADD COLUMN flathub_checked_at INTEGER;
+ALTER TABLE bookmark ADD COLUMN alternativeto_checked_at INTEGER;

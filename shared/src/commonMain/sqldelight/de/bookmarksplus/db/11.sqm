@@ -1,0 +1,2 @@
+-- v11 → v12: "don't check anymore" marker for the link check (e.g. pages with bot protection)
+ALTER TABLE bookmark ADD COLUMN link_ignore INTEGER NOT NULL DEFAULT 0;

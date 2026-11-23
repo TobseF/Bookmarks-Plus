@@ -1,0 +1,4 @@
+-- v1 → v2: fields for enrichment (phase 3)
+ALTER TABLE bookmark ADD COLUMN meta_title TEXT;
+ALTER TABLE bookmark ADD COLUMN meta_description TEXT;
+ALTER TABLE bookmark ADD COLUMN final_url TEXT;

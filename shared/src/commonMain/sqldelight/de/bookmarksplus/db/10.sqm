@@ -1,0 +1,10 @@
+-- v10 → v11: any number of screenshots with source and hide flag (JSON), freely selectable thumbnail
+ALTER TABLE bookmark ADD COLUMN shots_json TEXT;
+ALTER TABLE bookmark ADD COLUMN thumb_choice TEXT;
+ALTER TABLE bookmark ADD COLUMN thumb_custom_path TEXT;
+-- carry over existing screenshots (screenshot_1..3, filled without gaps); hash = path, source unknown
+UPDATE bookmark SET shots_json = '[' || json_object('h', screenshot_1, 'p', screenshot_1, 's', 'unknown', 'x', 0)
+    || coalesce(',' || CASE WHEN screenshot_2 IS NOT NULL THEN json_object('h', screenshot_2, 'p', screenshot_2, 's', 'unknown', 'x', 0) END, '')
+    || coalesce(',' || CASE WHEN screenshot_3 IS NOT NULL THEN json_object('h', screenshot_3, 'p', screenshot_3, 's', 'unknown', 'x', 0) END, '')
+    || ']'
+WHERE screenshot_1 IS NOT NULL;

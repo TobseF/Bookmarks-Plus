@@ -1,0 +1,5 @@
+getSetting:
+SELECT value FROM setting WHERE key = ?;
+
+putSetting:
+INSERT OR REPLACE INTO setting(key, value) VALUES (?, ?);

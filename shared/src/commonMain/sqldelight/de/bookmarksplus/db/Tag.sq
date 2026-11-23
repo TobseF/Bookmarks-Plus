@@ -1,0 +1,25 @@
+insertTag:
+INSERT INTO tag(name, color) VALUES (?, ?);
+
+allTags:
+SELECT t.id, t.name, t.color, (SELECT count(*) FROM bookmark_tag bt JOIN bookmark b ON b.id = bt.bookmark_id
+                               WHERE bt.tag_id = t.id AND b.deleted_at IS NULL) AS usage
+FROM tag t ORDER BY t.name COLLATE NOCASE;
+
+tagByName:
+SELECT * FROM tag WHERE name = ? COLLATE NOCASE;
+
+updateTag:
+UPDATE tag SET name = ?, color = ? WHERE id = ?;
+
+deleteTag:
+DELETE FROM tag WHERE id = ?;
+
+allBookmarkTags:
+SELECT bt.bookmark_id, bt.tag_id FROM bookmark_tag bt;
+
+addTag:
+INSERT OR IGNORE INTO bookmark_tag(bookmark_id, tag_id) VALUES (?, ?);
+
+removeTag:
+DELETE FROM bookmark_tag WHERE bookmark_id = ? AND tag_id = ?;

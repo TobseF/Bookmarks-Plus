@@ -1,0 +1,65 @@
+[versions]
+kotlin = "2.4.21"
+compose = "1.12.2"
+sqldelight = "2.4.1"
+coroutines = "1.11.0"
+serialization = "1.13.0"
+material3 = "1.9.0"
+materialIcons = "1.7.3"
+jsoup = "1.24.1"
+playwright = "1.65.1"
+commonmark = "0.24.0"
+ktor = "3.2.3"
+commonsNet = "3.11.1"
+bouncycastle = "1.81"
+jna = "5.17.0"
+ftpserver = "1.2.1"
+logback = "1.5.18"
+agp = "9.4.1"
+sqliteJdbcAndroid = "3.45.2.0"
+activityCompose = "1.13.0"
+work = "2.10.5"
+
+[libraries]
+sqldelight-runtime = { module = "app.cash.sqldelight:runtime", version.ref = "sqldelight" }
+sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions", version.ref = "sqldelight" }
+sqldelight-sqlite-driver = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqldelight" }
+coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "coroutines" }
+serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+
+compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
+compose-icons = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "materialIcons" }
+jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
+playwright = { module = "com.microsoft.playwright:playwright", version.ref = "playwright" }
+
+commonmark = { module = "org.commonmark:commonmark", version.ref = "commonmark" }
+commonmark-tables = { module = "org.commonmark:commonmark-ext-gfm-tables", version.ref = "commonmark" }
+commonmark-strikethrough = { module = "org.commonmark:commonmark-ext-gfm-strikethrough", version.ref = "commonmark" }
+commonmark-autolink = { module = "org.commonmark:commonmark-ext-autolink", version.ref = "commonmark" }
+
+ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
+ktor-server-netty = { module = "io.ktor:ktor-server-netty", version.ref = "ktor" }
+ktor-server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "ktor" }
+ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }
+ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
+commons-net = { module = "commons-net:commons-net", version.ref = "commonsNet" }
+bouncycastle = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
+jna-platform = { module = "net.java.dev.jna:jna-platform", version.ref = "jna" }
+ftpserver = { module = "org.apache.ftpserver:ftpserver-core", version.ref = "ftpserver" }
+logback = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
+androidx-work = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
+coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
+sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version = "3.53.4.0" }
+# Still contains native libraries for Android (org/sqlite/native/Linux-Android); 3.53 no longer does
+sqlite-jdbc-android = { module = "org.xerial:sqlite-jdbc", version.ref = "sqliteJdbcAndroid" }
+
+[plugins]
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+compose = { id = "org.jetbrains.compose", version.ref = "compose" }
+sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
+android-application = { id = "com.android.application", version.ref = "agp" }

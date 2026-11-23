@@ -1,0 +1,2 @@
+countPendingChanges:
+SELECT count(*) FROM sync_change WHERE pending = 1;

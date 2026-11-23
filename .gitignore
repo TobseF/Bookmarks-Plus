@@ -1,0 +1,25 @@
+# Build & IDE
+.gradle/
+.gradle-home/
+build/
+.kotlin/
+.idea/
+*.iml
+local.properties
+.android-sdk/
+dist/
+.DS_Store
+
+# Runtime data and databases
+*.db
+*.db-wal
+*.db-shm
+
+# Private data: own bookmark exports (tests use them locally via -Dbookmarks.sample), API keys
+bookmarks_*.html
+nano-gpt.txt
+*.key
+
+# Android signing keys
+*.jks
+*.keystore

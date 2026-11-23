@@ -1,0 +1,171 @@
+-- Folder tree. The root folder has parent_id = NULL.
+CREATE TABLE folder (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    uuid TEXT NOT NULL UNIQUE,
+    parent_id INTEGER REFERENCES folder(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    position INTEGER NOT NULL DEFAULT 0,      -- shared position space with placement.position
+    add_date INTEGER,
+    last_modified INTEGER,
+    extra TEXT,                               -- JSON: unknown Netscape attributes (SPEEDDIAL, PERSONAL_TOOLBAR_FOLDER …)
+    deleted_at INTEGER
+);
+CREATE INDEX folder_parent ON folder(parent_id, position);
+
+-- Favicons, deduplicated via the hash of the bytes.
+CREATE TABLE icon (
+    hash TEXT NOT NULL PRIMARY KEY,
+    mime TEXT NOT NULL,
+    data BLOB NOT NULL
+);
+
+-- A bookmark exists exactly once; where it lives is stored in placement.
+CREATE TABLE bookmark (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    uuid TEXT NOT NULL UNIQUE,
+    url TEXT NOT NULL,
+    url_norm TEXT NOT NULL,                   -- normalized URL for the duplicate finder
+    title TEXT NOT NULL,
+    description TEXT,
+    ai_title TEXT,
+    summary TEXT,
+    domain TEXT,
+    favicon_hash TEXT REFERENCES icon(hash),
+    thumbnail_path TEXT,
+    card_image_url TEXT,                      -- og:image / twitter:image / GitHub card
+    card_image_path TEXT,
+    repo_url TEXT,                            -- GitHub repo of the project
+    website_url TEXT,                         -- official website of the project
+    readme TEXT,
+    gh_stars INTEGER,
+    gh_last_commit INTEGER,
+    gh_last_release TEXT,
+    gh_last_release_date INTEGER,
+    gh_author TEXT,
+    gh_org TEXT,
+    content_type TEXT,                        -- article, video, repo, docs, tool, shop …
+    link_status INTEGER,                      -- last HTTP status (0 = unreachable)
+    status_checked_at INTEGER,
+    add_date INTEGER,
+    last_modified INTEGER,
+    last_visited INTEGER,
+    scraped_at INTEGER,
+    enriched_at INTEGER,
+    extra TEXT,                               -- JSON: unknown Netscape attributes (NICKNAME …) and ICON fallback
+    deleted_at INTEGER,                       -- trash
+    -- from schema v2 (must come last because ALTER TABLE appends)
+    meta_title TEXT,                          -- title according to the page (og:title / <title>)
+    meta_description TEXT,                    -- description according to the page (og:description / meta description)
+    final_url TEXT,                           -- target after redirects
+    -- from schema v3 (AI, phase 4)
+    page_text TEXT,                           -- main text of the page (shortened) for AI and full-text search
+    ai_tags TEXT,                             -- JSON array of suggested tag names
+    ai_folder TEXT,                           -- suggested folder path ("A / B / C")
+    ai_at INTEGER,                            -- time of the AI evaluation
+    -- from schema v4 (management)
+    trash_path TEXT,                          -- folder path before deletion (if no placement remained)
+    -- from schema v5 (link check)
+    link_error TEXT,                          -- dns, connect, timeout, ssl, loop … for status 0
+    -- from schema v7: uniform AI texts in German and English (independent of the page language)
+    title_de TEXT,
+    title_en TEXT,
+    desc_de TEXT,                             -- one sentence: what the page is
+    desc_en TEXT,
+    summary_de TEXT,                          -- 2–3 sentences: content and benefit
+    summary_en TEXT,
+    ai_models TEXT,                           -- models used ("text=…;tags=…")
+    -- from schema v8: screenshots of an application (not of the website), local paths; download of the current version
+    screenshot_1 TEXT,
+    screenshot_2 TEXT,
+    screenshot_3 TEXT,
+    download_url TEXT,
+    download_label TEXT,                      -- file name or version of the download
+    -- from schema v9: programs and games
+    app_name TEXT,                            -- clean name of the application ("FileZilla" instead of "FileZilla – The free FTP solution")
+    app_platforms TEXT,                       -- comma-separated: pc, smartphone, browser, docker
+    app_systems TEXT,                         -- comma-separated: windows, linux, mac, android
+    app_license TEXT,                         -- SPDX identifier or text ("GPL-2.0-or-later", "Proprietary")
+    pkg_winget TEXT,                          -- package IDs of the package managers
+    pkg_choco TEXT,
+    pkg_brew TEXT,                            -- formula or "--cask name"
+    pkg_npm TEXT,
+    pkg_scoop TEXT,
+    flathub_url TEXT,                         -- https://flathub.org/apps/<app-id>
+    alternativeto_url TEXT,                   -- https://alternativeto.net/software/<slug>/about/
+    flathub_installs INTEGER,                 -- downloads/installs according to Flathub
+    flathub_download_size INTEGER,            -- bytes
+    flathub_installed_size INTEGER,           -- bytes
+    app_name_source TEXT,                     -- where the app name comes from: user, flathub, alternativeto, sourceforge, ai, heuristic
+    flathub_checked_at INTEGER,               -- last search/query at Flathub (even without a hit)
+    alternativeto_checked_at INTEGER,         -- last search/query at AlternativeTo (even without a hit)
+    -- from schema v10: icon sources separately (hashes point to icon); favicon_hash remains the favicon of the page itself
+    avatar_hash TEXT,                         -- avatar of the GitHub user or organization
+    flathub_icon_hash TEXT,
+    alternativeto_icon_hash TEXT,
+    website_icon_hash TEXT,                   -- favicon of the stored project website (website_url)
+    -- from schema v11: screenshots as JSON [{h: hash, p: path, s: source, x: hidden}] (replaces screenshot_1..3), thumbnail choice
+    shots_json TEXT,
+    thumb_choice TEXT,                        -- NULL = automatic, otherwise website | card | custom | shot:<hash>
+    thumb_custom_path TEXT,                   -- custom thumbnail (upload / clipboard)
+    -- from schema v12
+    link_ignore INTEGER NOT NULL DEFAULT 0    -- 1 = excluded from "Check all links"
+);
+
+-- Translations of the tag names. The key is the canonical (English) name, also for suggestions not yet created.
+CREATE TABLE tag_i18n (
+    name TEXT NOT NULL PRIMARY KEY COLLATE NOCASE,
+    de TEXT,
+    en TEXT
+);
+CREATE INDEX bookmark_url ON bookmark(url);
+CREATE INDEX bookmark_url_norm ON bookmark(url_norm);
+CREATE INDEX bookmark_domain ON bookmark(domain);
+
+-- Placement of a bookmark in a folder. Several placements = links.
+-- If the primary placement is deleted, another one becomes primary; the bookmark remains.
+CREATE TABLE placement (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    bookmark_id INTEGER NOT NULL REFERENCES bookmark(id) ON DELETE CASCADE,
+    folder_id INTEGER NOT NULL REFERENCES folder(id) ON DELETE CASCADE,
+    position INTEGER NOT NULL,
+    is_primary INTEGER NOT NULL DEFAULT 0,
+    title TEXT,                               -- differing title of this copy (e.g. import duplicate)
+    add_date INTEGER,                         -- differing ADD_DATE of this copy
+    extra TEXT,                               -- JSON: differing attributes of this copy (null value = removed)
+    uuid TEXT                                 -- from schema v6: stable ID for sync (set by trigger)
+);
+CREATE INDEX placement_folder ON placement(folder_id, position);
+CREATE INDEX placement_bookmark ON placement(bookmark_id);
+CREATE UNIQUE INDEX placement_uuid_idx ON placement(uuid);
+
+CREATE TABLE tag (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+    color INTEGER NOT NULL                    -- ARGB
+);
+
+CREATE TABLE bookmark_tag (
+    bookmark_id INTEGER NOT NULL REFERENCES bookmark(id) ON DELETE CASCADE,
+    tag_id INTEGER NOT NULL REFERENCES tag(id) ON DELETE CASCADE,
+    PRIMARY KEY (bookmark_id, tag_id)
+);
+
+CREATE TABLE setting (
+    key TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+-- Change log for sync: per record the last change time (ms), deletion marker and whether it
+-- still has to be uploaded. Maintained by triggers (except while sync changes are being applied).
+CREATE TABLE sync_change (
+    entity TEXT NOT NULL,
+    key TEXT NOT NULL,
+    changed_at INTEGER NOT NULL,
+    deleted INTEGER NOT NULL DEFAULT 0,
+    pending INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (entity, key)
+);
+CREATE INDEX sync_change_pending ON sync_change(pending);
+
+lastInsertId:
+SELECT last_insert_rowid();

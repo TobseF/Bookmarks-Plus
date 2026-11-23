@@ -1,0 +1,73 @@
+{
+  "manifest_version": 3,
+  "name": "Bookmarks Plus",
+  "version": "1.3.4",
+  "default_locale": "en",
+  "description": "__MSG_ext_description__",
+  "minimum_chrome_version": "116",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Bookmarks Plus",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "options_page": "options.html",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "contextMenus",
+    "storage",
+    "tabs",
+    "bookmarks",
+    "favicon",
+    "sidePanel",
+    "alarms"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1/*",
+    "https://alternativeto.net/*"
+  ],
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+B"
+      },
+      "description": "__MSG_cmd_open__"
+    },
+    "save-page": {
+      "suggested_key": {
+        "default": "Alt+Shift+S"
+      },
+      "description": "__MSG_cmd_save_page__"
+    },
+    "open-panel": {
+      "suggested_key": {
+        "default": "Alt+Shift+L"
+      },
+      "description": "__MSG_menu_open_panel__"
+    },
+    "open-manager": {
+      "description": "__MSG_menu_open_manager__"
+    }
+  },
+  "omnibox": {
+    "keyword": "b"
+  },
+  "side_panel": {
+    "default_path": "panel.html"
+  }
+}

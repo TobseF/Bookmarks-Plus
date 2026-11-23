@@ -1,0 +1,506 @@
+{
+  "all_bookmarks": {
+    "message": "Alle Lesezeichen"
+  },
+  "already_saved": {
+    "message": "War schon gespeichert"
+  },
+  "apply": {
+    "message": "Übernehmen"
+  },
+  "badge_401": {
+    "message": "Nicht verbunden – Symbol anklicken"
+  },
+  "badge_http_only": {
+    "message": "Nur http(s)-Seiten lassen sich speichern"
+  },
+  "badge_link_saved": {
+    "message": "Link gespeichert: {0}"
+  },
+  "badge_saved": {
+    "message": "Gespeichert"
+  },
+  "badge_saved_in": {
+    "message": "Gespeichert in {0}"
+  },
+  "cancel": {
+    "message": "Abbrechen"
+  },
+  "cmd_open": {
+    "message": "Bookmarks Plus öffnen"
+  },
+  "cmd_save_page": {
+    "message": "Aktuelle Seite sofort speichern"
+  },
+  "connect": {
+    "message": "Verbinden"
+  },
+  "err_unreachable": {
+    "message": "Bookmarks Plus ist nicht erreichbar – läuft die App?"
+  },
+  "ext_description": {
+    "message": "Lesezeichen aus Bookmarks Plus in der Adressleiste (Kürzel „b“) und im Seitenpanel durchsuchen, ordnen und speichern."
+  },
+  "failed": {
+    "message": "Fehlgeschlagen"
+  },
+  "folder": {
+    "message": "Ordner"
+  },
+  "loading": {
+    "message": "lädt …"
+  },
+  "m_copy_url": {
+    "message": "Adresse kopieren"
+  },
+  "m_edit_tags": {
+    "message": "Tags bearbeiten …"
+  },
+  "m_link_with": {
+    "message": "Verknüpfen mit …"
+  },
+  "m_move_to": {
+    "message": "Verschieben nach …"
+  },
+  "m_open": {
+    "message": "Öffnen"
+  },
+  "m_open_all_window": {
+    "message": "Alle im neuen Fenster öffnen"
+  },
+  "m_open_repo": {
+    "message": "Repository öffnen"
+  },
+  "m_open_tab": {
+    "message": "In neuem Tab öffnen"
+  },
+  "m_open_website": {
+    "message": "Webseite öffnen"
+  },
+  "m_open_window": {
+    "message": "In neuem Fenster öffnen"
+  },
+  "m_rename": {
+    "message": "Umbenennen …"
+  },
+  "m_show_grid": {
+    "message": "Als Kacheln anzeigen"
+  },
+  "m_show_list": {
+    "message": "Als Liste anzeigen"
+  },
+  "m_trash": {
+    "message": "In den Papierkorb"
+  },
+  "menu_open_manager": {
+    "message": "Bookmarks Plus im Tab öffnen"
+  },
+  "menu_open_panel": {
+    "message": "Seitenpanel öffnen"
+  },
+  "menu_save_link": {
+    "message": "Link in Bookmarks Plus speichern"
+  },
+  "menu_save_page": {
+    "message": "Seite in Bookmarks Plus speichern"
+  },
+  "n_bookmarks": {
+    "message": "{0} Lesezeichen"
+  },
+  "note": {
+    "message": "Notiz"
+  },
+  "nothing_found": {
+    "message": "Nichts gefunden."
+  },
+  "off_text": {
+    "message": "Bitte die App starten. Die Erweiterung spricht nur mit der App auf diesem Rechner."
+  },
+  "off_title": {
+    "message": "Bookmarks Plus ist nicht erreichbar."
+  },
+  "omni_401": {
+    "message": "Nicht verbunden – Symbol der Erweiterung anklicken"
+  },
+  "omni_hint": {
+    "message": "Bookmarks Plus durchsuchen – Enter öffnet den ersten Treffer, Alt+Enter alle Treffer im Manager"
+  },
+  "omni_not_connected": {
+    "message": "Bookmarks Plus ist nicht verbunden – Symbol der Erweiterung anklicken und „Verbinden“ wählen"
+  },
+  "omni_nothing": {
+    "message": "Nichts gefunden für {0} – Enter öffnet den Manager"
+  },
+  "opt_check_again": {
+    "message": "Erneut prüfen"
+  },
+  "opt_checking": {
+    "message": "Prüfe …"
+  },
+  "opt_connected": {
+    "message": "<span class=\"ok\">Verbunden</span> mit der App auf Port {0}"
+  },
+  "opt_connection": {
+    "message": "Verbindung zur App"
+  },
+  "opt_connection_hint": {
+    "message": "Die App lauscht nur auf 127.0.0.1. Gekoppelte Browser lassen sich auch in der App unter ⚙ → Browser-Erweiterung trennen."
+  },
+  "opt_disconnect": {
+    "message": "Trennen"
+  },
+  "opt_import_confirm": {
+    "message": "{0} Lesezeichen aus {1} in Bookmarks Plus übernehmen?"
+  },
+  "opt_import_done": {
+    "message": "<span class=\"ok\">{0} übernommen</span> – {1} neu, {2} schon vorhanden (verknüpft)"
+  },
+  "opt_import_hint": {
+    "message": "Kopiert alle Lesezeichen dieses Browsers einmalig in einen neuen Ordner „Import …“ in Bookmarks Plus. Bereits vorhandene Adressen werden dort als Verknüpfung eingetragen statt doppelt angelegt. Die Browser-Lesezeichen bleiben unverändert."
+  },
+  "opt_import_now": {
+    "message": "Jetzt übernehmen"
+  },
+  "opt_import_title": {
+    "message": "Lesezeichen dieses Browsers übernehmen"
+  },
+  "opt_language": {
+    "message": "Sprache"
+  },
+  "opt_logo": {
+    "message": "Erweiterung"
+  },
+  "opt_not_connected": {
+    "message": "<span class=\"err\">Nicht verbunden</span> – im Symbol der Erweiterung auf „Verbinden“ klicken."
+  },
+  "opt_port": {
+    "message": "Port"
+  },
+  "opt_shortcuts": {
+    "message": "Tastenkürzel"
+  },
+  "opt_shortcuts_hint": {
+    "message": "Alt+Umschalt+B öffnet das Fenster, Alt+Umschalt+S speichert die aktuelle Seite sofort. Ändern unter <code>chrome://extensions/shortcuts</code> (Vivaldi: Einstellungen → Tastatur)."
+  },
+  "opt_title": {
+    "message": "Bookmarks Plus – Einstellungen"
+  },
+  "opt_transferring": {
+    "message": "Übertrage …"
+  },
+  "opt_unreachable": {
+    "message": "<span class=\"err\">App nicht erreichbar</span> – läuft Bookmarks Plus?"
+  },
+  "optional": {
+    "message": "optional"
+  },
+  "pair_code": {
+    "message": "Bestätige in der App diesen Code:"
+  },
+  "pair_rejected": {
+    "message": "Abgelehnt oder abgelaufen."
+  },
+  "pair_text_pan": {
+    "message": "Einmalig: Die App fragt nach, ob dieser Browser Lesezeichen lesen und ändern darf."
+  },
+  "pair_text_pop": {
+    "message": "Einmalig: Die App fragt nach, ob dieser Browser Lesezeichen speichern und durchsuchen darf."
+  },
+  "pair_title": {
+    "message": "Mit der App verbinden"
+  },
+  "pair_waiting": {
+    "message": "Warte auf Bestätigung …"
+  },
+  "pair_waiting_s": {
+    "message": "Warte auf Bestätigung … {0} s"
+  },
+  "pan_choose_folder": {
+    "message": "Ordner wählen"
+  },
+  "pan_close_tab": {
+    "message": "Tab schließen"
+  },
+  "pan_folder_empty": {
+    "message": "Der Ordner enthält direkt keine Lesezeichen"
+  },
+  "pan_grid": {
+    "message": "▦ Kacheln"
+  },
+  "pan_grid_tip": {
+    "message": "Kacheln"
+  },
+  "pan_link": {
+    "message": "Verknüpfung"
+  },
+  "pan_link_title": {
+    "message": "„{0}“ zusätzlich ablegen in"
+  },
+  "pan_linked_in": {
+    "message": "Verknüpft in {0}"
+  },
+  "pan_list": {
+    "message": "☰ Liste"
+  },
+  "pan_list_tip": {
+    "message": "Liste"
+  },
+  "pan_more": {
+    "message": "Mehr laden"
+  },
+  "pan_move_title": {
+    "message": "„{0}“ verschieben nach"
+  },
+  "pan_moved_to": {
+    "message": "Verschoben nach {0}"
+  },
+  "pan_no_tabs": {
+    "message": "Keine Tabs gefunden."
+  },
+  "pan_not_savable": {
+    "message": "Diese Seite lässt sich nicht speichern"
+  },
+  "pan_open_tab": {
+    "message": "Im eigenen Tab öffnen"
+  },
+  "pan_open_tabs": {
+    "message": "{0} Tabs öffnen?"
+  },
+  "pan_plus_all": {
+    "message": "＋ alle"
+  },
+  "pan_renamed": {
+    "message": "Umbenannt"
+  },
+  "pan_restored": {
+    "message": "Wiederhergestellt"
+  },
+  "pan_save_inbox": {
+    "message": "In die Inbox speichern"
+  },
+  "pan_save_page": {
+    "message": "Aktuelle Seite in die Inbox speichern"
+  },
+  "pan_save_window": {
+    "message": "Alle Tabs dieses Fensters in die Inbox speichern"
+  },
+  "pan_saved_inbox": {
+    "message": "In der Inbox gespeichert"
+  },
+  "pan_search": {
+    "message": "Suchen … #tag domain: stars:>1k"
+  },
+  "pan_search_folders": {
+    "message": "Ordner suchen …"
+  },
+  "pan_show_as": {
+    "message": "Als Liste/Kacheln anzeigen"
+  },
+  "pan_show_folder": {
+    "message": "Ordner anzeigen"
+  },
+  "pan_sort": {
+    "message": "Sortierung"
+  },
+  "pan_tabs": {
+    "message": "🗂 Tabs"
+  },
+  "pan_tabs_saved": {
+    "message": "{0} von {1} Tabs neu gespeichert"
+  },
+  "pan_tabs_tip": {
+    "message": "Offene Tabs"
+  },
+  "pan_tags_saved": {
+    "message": "Tags gespeichert"
+  },
+  "pan_tags_title": {
+    "message": "Tags: {0}"
+  },
+  "pan_this_window": {
+    "message": "Dieses Fenster"
+  },
+  "pan_trashed": {
+    "message": "In den Papierkorb verschoben"
+  },
+  "pan_tree": {
+    "message": "🌳 Baum"
+  },
+  "pan_tree_tip": {
+    "message": "Ordnerbaum"
+  },
+  "pan_url_copied": {
+    "message": "Adresse kopiert"
+  },
+  "pan_window_n": {
+    "message": "Fenster {0}"
+  },
+  "pop_app_applied_many": {
+    "message": "✓ {0} → {1} Lesezeichen aktualisiert"
+  },
+  "pop_app_create": {
+    "message": "＋ Neu in Inbox anlegen und übernehmen"
+  },
+  "pop_app_create_new": {
+    "message": "＋ Als neues Lesezeichen speichern und übernehmen"
+  },
+  "pop_app_found": {
+    "message": "Passendes Lesezeichen gefunden – Daten übernehmen in:"
+  },
+  "pop_app_inexact": {
+    "message": "Kein genauer Treffer. Eintrag aktualisieren oder neu anlegen:"
+  },
+  "pop_app_inexact_domain": {
+    "message": "Kein genauer Treffer – gefunden über die Domain {0}. Eintrag aktualisieren oder neu anlegen:"
+  },
+  "pop_app_linked": {
+    "message": "Schon hinterlegt – Daten aktualisieren:"
+  },
+  "pop_app_none": {
+    "message": "Kein passendes Lesezeichen gefunden."
+  },
+  "pop_app_reading": {
+    "message": "Programmdaten werden gelesen …"
+  },
+  "pop_app_too_old": {
+    "message": "Die App ist zu alt für diese Funktion – bitte aktualisieren."
+  },
+  "pop_app_warn": {
+    "message": "Achtung: Die Programmdaten (Name, Plattform, System, Lizenz, Paket-IDs, Links) werden in alle {0} Lesezeichen der Domain {1} geschrieben und überschreiben dort vorhandene Angaben. Das lässt sich nicht gesammelt rückgängig machen. Nur fortfahren, wenn wirklich alle zu diesem Programm gehören."
+  },
+  "pop_applied": {
+    "message": "✓ Übernommen"
+  },
+  "pop_apply_all": {
+    "message": "Für alle {0} übernehmen …"
+  },
+  "pop_capture_failed": {
+    "message": "Aufnahme fehlgeschlagen"
+  },
+  "pop_create_inbox": {
+    "message": "Neu in Inbox anlegen"
+  },
+  "pop_domain_hint": {
+    "message": "Diese Adresse ist nicht gespeichert, aber {0} auf {1}. Die gespeicherte Adresse bleibt unverändert; die aktuell angezeigte Seite lässt sich als Thumbnail übernehmen:"
+  },
+  "pop_domain_warn": {
+    "message": "Achtung: Das aktuelle Thumbnail sowie Tags, Ordner und Notiz aus dem Formular werden in alle {0} Lesezeichen der Domain {1} geschrieben und ersetzen dort das bisherige Thumbnail. Das lässt sich nicht gesammelt rückgängig machen. Nur fortfahren, wenn das wirklich für alle gelten soll."
+  },
+  "pop_fields_btn": {
+    "message": "Angaben"
+  },
+  "pop_fields_tip": {
+    "message": "Titel, Notiz, Ordner und Tags aus dem Formular übernehmen"
+  },
+  "pop_folder_not_found": {
+    "message": "Ordner nicht gefunden – aus der Liste wählen"
+  },
+  "pop_in_folders": {
+    "message": " in {0}"
+  },
+  "pop_in_trash": {
+    "message": "🗑 Im Papierkorb"
+  },
+  "pop_more_bookmarks_domain": {
+    "message": "＋ {0} weitere Lesezeichen mit der Domain {1}"
+  },
+  "pop_more_domain": {
+    "message": "＋ {0} weitere mit der Domain {1}"
+  },
+  "pop_not_savable": {
+    "message": "Diese Seite lässt sich nicht speichern (nur http/https). Suche oben nach Lesezeichen."
+  },
+  "pop_one_bookmark": {
+    "message": "ein Lesezeichen"
+  },
+  "pop_or_new": {
+    "message": "Oder unten als neues Lesezeichen anlegen."
+  },
+  "pop_save_changes": {
+    "message": "Änderungen speichern"
+  },
+  "pop_saved": {
+    "message": "✓ Gespeichert"
+  },
+  "pop_search": {
+    "message": "Lesezeichen suchen …"
+  },
+  "pop_thumb_btn": {
+    "message": "📷 Thumbnail"
+  },
+  "pop_thumb_not_saved": {
+    "message": "Die Seite ist noch nicht gespeichert – erst speichern, dann das Thumbnail aktualisieren"
+  },
+  "pop_thumb_tip": {
+    "message": "Die angezeigte Seite als Thumbnail dieses Lesezeichens übernehmen"
+  },
+  "pop_thumb_update": {
+    "message": "📷 Thumbnail aktualisieren"
+  },
+  "pop_thumb_updated": {
+    "message": "Thumbnail aktualisiert ✓"
+  },
+  "pop_update_this": {
+    "message": "Diesen aktualisieren"
+  },
+  "pop_updated_many": {
+    "message": "✓ {0} Lesezeichen aktualisiert (Adressen unverändert)"
+  },
+  "pop_updated_one": {
+    "message": "✓ „{0}“ aktualisiert (Adresse unverändert)"
+  },
+  "pop_updated_partial": {
+    "message": "{0} von {1} aktualisiert – Fehler: {2}"
+  },
+  "pop_yes_change": {
+    "message": "Ja, {0} Lesezeichen ändern"
+  },
+  "remove": {
+    "message": "Entfernen"
+  },
+  "retry": {
+    "message": "Erneut versuchen"
+  },
+  "save": {
+    "message": "Speichern"
+  },
+  "saved_check": {
+    "message": "Gespeichert ✓"
+  },
+  "settings": {
+    "message": "Einstellungen"
+  },
+  "sort_added": {
+    "message": "Hinzugefügt"
+  },
+  "sort_lastcommit": {
+    "message": "Letzter Commit"
+  },
+  "sort_modified": {
+    "message": "Aktualisiert"
+  },
+  "sort_title": {
+    "message": "Titel"
+  },
+  "tag_input": {
+    "message": "Tag eingeben, Enter"
+  },
+  "tags": {
+    "message": "Tags"
+  },
+  "task_bot_check": {
+    "message": "Bot-Prüfung nicht bestanden"
+  },
+  "task_host_denied": {
+    "message": "Host nicht freigegeben"
+  },
+  "title": {
+    "message": "Titel"
+  },
+  "undo": {
+    "message": "Rückgängig"
+  },
+  "update": {
+    "message": "Aktualisieren"
+  }
+}

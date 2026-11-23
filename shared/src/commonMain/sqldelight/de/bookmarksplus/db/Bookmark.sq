@@ -1,0 +1,186 @@
+insertBookmark:
+INSERT INTO bookmark(uuid, url, url_norm, title, description, domain, favicon_hash, add_date, last_modified, last_visited, extra)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+byId:
+SELECT * FROM bookmark WHERE id = ?;
+
+byUrl:
+SELECT * FROM bookmark WHERE url = ? AND deleted_at IS NULL LIMIT 1;
+
+countBookmarks:
+SELECT count(*) FROM bookmark WHERE deleted_at IS NULL;
+
+moveToTrash:
+UPDATE bookmark SET deleted_at = ? WHERE id = ?;
+
+restoreFromTrash:
+UPDATE bookmark SET deleted_at = NULL WHERE id = ?;
+
+insertIcon:
+INSERT OR IGNORE INTO icon(hash, mime, data) VALUES (?, ?, ?);
+
+iconByHash:
+SELECT * FROM icon WHERE hash = ?;
+
+-- Placements ---------------------------------------------------------------
+
+insertPlacement:
+INSERT INTO placement(bookmark_id, folder_id, position, is_primary, title, add_date, extra)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+placementById:
+SELECT * FROM placement WHERE id = ?;
+
+placementsOfBookmark:
+SELECT * FROM placement WHERE bookmark_id = ? ORDER BY is_primary DESC, id;
+
+deletePlacement:
+DELETE FROM placement WHERE id = ?;
+
+setPrimary:
+UPDATE placement SET is_primary = (id = :placementId) WHERE bookmark_id = :bookmarkId;
+
+countPlacements:
+SELECT count(*) FROM placement p JOIN bookmark b ON b.id = p.bookmark_id WHERE b.deleted_at IS NULL;
+
+-- All entries of a folder incl. bookmark data for the export / the views.
+entriesInFolder:
+SELECT p.id AS placement_id, p.position, p.is_primary, p.title AS placement_title, p.add_date AS placement_add_date,
+       p.extra AS placement_extra, b.*, i.mime AS icon_mime, i.data AS icon_data
+FROM placement p
+JOIN bookmark b ON b.id = p.bookmark_id
+LEFT JOIN icon i ON i.hash = b.favicon_hash
+WHERE p.folder_id = ? AND b.deleted_at IS NULL
+ORDER BY p.position, p.id;
+
+-- Light rows for the views (without README and icon bytes). All ~6,000 fit into memory easily.
+viewRows:
+SELECT b.id, b.url, b.title, b.ai_title, b.description, b.summary, b.domain, b.favicon_hash,
+       b.thumbnail_path, b.card_image_path, b.card_image_url, b.repo_url, b.website_url,
+       b.gh_stars, b.gh_last_commit, b.gh_last_release, b.gh_last_release_date, b.gh_author, b.gh_org,
+       b.content_type, b.link_status, b.add_date, b.last_modified, b.last_visited, b.url_norm,
+       b.meta_title, b.meta_description, b.final_url, b.readme IS NOT NULL AS has_readme, b.scraped_at,
+       b.ai_tags, b.ai_folder, b.ai_at, b.deleted_at, b.trash_path, b.link_error, b.status_checked_at, b.link_ignore,
+       b.title_de, b.title_en, b.desc_de, b.desc_en, b.summary_de, b.summary_en,
+       b.download_url, b.download_label,
+       b.app_name, b.app_platforms, b.app_systems, b.app_license,
+       b.pkg_winget, b.pkg_choco, b.pkg_brew, b.pkg_npm, b.pkg_scoop,
+       b.flathub_url, b.alternativeto_url, b.flathub_installs, b.flathub_download_size, b.flathub_installed_size,
+       b.app_name_source, b.avatar_hash, b.flathub_icon_hash, b.alternativeto_icon_hash, b.website_icon_hash, b.shots_json, b.thumb_choice, b.thumb_custom_path
+FROM bookmark b;
+
+allPlacements:
+SELECT p.id, p.bookmark_id, p.folder_id, p.position, p.is_primary, p.title
+FROM placement p
+ORDER BY p.folder_id, p.position, p.id;
+
+allIcons:
+SELECT hash, data FROM icon;
+
+updateTitle:
+UPDATE bookmark SET title = ?, last_modified = ? WHERE id = ?;
+
+readmeOf:
+SELECT readme FROM bookmark WHERE id = ?;
+
+-- Move placement to another folder
+movePlacement:
+UPDATE placement SET folder_id = ?, position = ? WHERE id = ?;
+
+-- Management -------------------------------------------------------------------
+
+updateTexts:
+UPDATE bookmark SET title = ?, url = ?, url_norm = ?, domain = ?, last_modified = ? WHERE id = ?;
+
+updateDescription:
+UPDATE bookmark SET description = ? WHERE id = ?;
+
+updateSummary:
+UPDATE bookmark SET summary = ? WHERE id = ?;
+
+updateReadme:
+UPDATE bookmark SET readme = ? WHERE id = ?;
+
+setTrashPath:
+UPDATE bookmark SET trash_path = ? WHERE id = ?;
+
+clearTrashPath:
+UPDATE bookmark SET trash_path = NULL WHERE id = ?;
+
+deleteForever:
+DELETE FROM bookmark WHERE id = ?;
+
+trashedIds:
+SELECT id FROM bookmark WHERE deleted_at IS NOT NULL;
+
+-- Duplicates / merging ---------------------------------------------------
+
+allUrls:
+SELECT id, url, url_norm FROM bookmark;
+
+setUrlNorm:
+UPDATE bookmark SET url_norm = ? WHERE id = ?;
+
+reassignPlacement:
+UPDATE placement SET bookmark_id = ?, is_primary = 0, title = coalesce(title, ?) WHERE id = ?;
+
+copyTags:
+INSERT OR IGNORE INTO bookmark_tag(bookmark_id, tag_id) SELECT ?, tag_id FROM bookmark_tag WHERE bookmark_id = ?;
+
+-- Take over missing fields of the kept bookmark from a duplicate
+fillFrom:
+UPDATE bookmark SET
+    description = coalesce(description, (SELECT o.description FROM bookmark o WHERE o.id = :other)),
+    summary = coalesce(summary, (SELECT o.summary FROM bookmark o WHERE o.id = :other)),
+    ai_title = coalesce(ai_title, (SELECT o.ai_title FROM bookmark o WHERE o.id = :other)),
+    readme = coalesce(readme, (SELECT o.readme FROM bookmark o WHERE o.id = :other)),
+    page_text = coalesce(page_text, (SELECT o.page_text FROM bookmark o WHERE o.id = :other)),
+    favicon_hash = coalesce(favicon_hash, (SELECT o.favicon_hash FROM bookmark o WHERE o.id = :other)),
+    avatar_hash = coalesce(avatar_hash, (SELECT o.avatar_hash FROM bookmark o WHERE o.id = :other)),
+    flathub_icon_hash = coalesce(flathub_icon_hash, (SELECT o.flathub_icon_hash FROM bookmark o WHERE o.id = :other)),
+    alternativeto_icon_hash = coalesce(alternativeto_icon_hash, (SELECT o.alternativeto_icon_hash FROM bookmark o WHERE o.id = :other)),
+    website_icon_hash = coalesce(website_icon_hash, (SELECT o.website_icon_hash FROM bookmark o WHERE o.id = :other)),
+    thumbnail_path = coalesce(thumbnail_path, (SELECT o.thumbnail_path FROM bookmark o WHERE o.id = :other)),
+    card_image_path = coalesce(card_image_path, (SELECT o.card_image_path FROM bookmark o WHERE o.id = :other)),
+    card_image_url = coalesce(card_image_url, (SELECT o.card_image_url FROM bookmark o WHERE o.id = :other)),
+    repo_url = coalesce(repo_url, (SELECT o.repo_url FROM bookmark o WHERE o.id = :other)),
+    website_url = coalesce(website_url, (SELECT o.website_url FROM bookmark o WHERE o.id = :other)),
+    shots_json = coalesce(shots_json, (SELECT o.shots_json FROM bookmark o WHERE o.id = :other)),
+    download_url = coalesce(download_url, (SELECT o.download_url FROM bookmark o WHERE o.id = :other)),
+    download_label = coalesce(download_label, (SELECT o.download_label FROM bookmark o WHERE o.id = :other)),
+    app_name = coalesce(app_name, (SELECT o.app_name FROM bookmark o WHERE o.id = :other)),
+    app_platforms = coalesce(app_platforms, (SELECT o.app_platforms FROM bookmark o WHERE o.id = :other)),
+    app_systems = coalesce(app_systems, (SELECT o.app_systems FROM bookmark o WHERE o.id = :other)),
+    app_license = coalesce(app_license, (SELECT o.app_license FROM bookmark o WHERE o.id = :other)),
+    pkg_winget = coalesce(pkg_winget, (SELECT o.pkg_winget FROM bookmark o WHERE o.id = :other)),
+    pkg_choco = coalesce(pkg_choco, (SELECT o.pkg_choco FROM bookmark o WHERE o.id = :other)),
+    pkg_brew = coalesce(pkg_brew, (SELECT o.pkg_brew FROM bookmark o WHERE o.id = :other)),
+    pkg_npm = coalesce(pkg_npm, (SELECT o.pkg_npm FROM bookmark o WHERE o.id = :other)),
+    pkg_scoop = coalesce(pkg_scoop, (SELECT o.pkg_scoop FROM bookmark o WHERE o.id = :other)),
+    flathub_url = coalesce(flathub_url, (SELECT o.flathub_url FROM bookmark o WHERE o.id = :other)),
+    alternativeto_url = coalesce(alternativeto_url, (SELECT o.alternativeto_url FROM bookmark o WHERE o.id = :other)),
+    add_date = min(coalesce(add_date, 9223372036854775807), coalesce((SELECT o.add_date FROM bookmark o WHERE o.id = :other), 9223372036854775807))
+WHERE id = :keep;
+
+-- Link check -----------------------------------------------------------------
+
+linkCheckTargets:
+SELECT id, url, link_ignore FROM bookmark WHERE deleted_at IS NULL ORDER BY coalesce(status_checked_at, 0), id;
+
+setLinkCheck:
+UPDATE bookmark SET link_status = ?, link_error = coalesce(?, CASE WHEN link_error = 'parked' THEN 'parked' END),
+       final_url = ?, status_checked_at = ? WHERE id = ?;
+
+-- Discard check result (e.g. "blocked" by bot protection): entry counts as unchecked again
+clearLinkStatus:
+UPDATE bookmark SET link_status = NULL, link_error = NULL, final_url = NULL, status_checked_at = NULL WHERE id = ?;
+
+-- "Don't check anymore": sets the marker; setting it also discards an existing status
+setLinkIgnore:
+UPDATE bookmark SET link_ignore = :ignore,
+       link_status = CASE WHEN :ignore = 1 THEN NULL ELSE link_status END,
+       link_error = CASE WHEN :ignore = 1 THEN NULL ELSE link_error END,
+       final_url = CASE WHEN :ignore = 1 THEN NULL ELSE final_url END,
+       status_checked_at = CASE WHEN :ignore = 1 THEN NULL ELSE status_checked_at END
+WHERE id = :id;

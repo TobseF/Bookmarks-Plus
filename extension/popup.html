@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Bookmarks Plus</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="logo"><img src="icons/icon32.png" alt=""><span>Bookmarks<b>+</b></span><small id="version" class="version"></small></div>
+    <input id="search" type="search" placeholder="Search bookmarks …" data-i18n-placeholder="pop_search" autocomplete="off" spellcheck="false">
+    <button id="openOptions" class="icon" title="Settings" data-i18n-title="settings">⚙</button>
+  </header>
+
+  <!-- Connection -->
+  <section id="viewOffline" hidden>
+    <p class="big" data-i18n="off_title">Bookmarks Plus is not reachable.</p>
+    <p class="muted" data-i18n="off_text">Please start the app. The extension only talks to the app on this computer.</p>
+    <button id="retry" class="primary" data-i18n="retry">Try again</button>
+  </section>
+
+  <section id="viewPair" hidden>
+    <p class="big" data-i18n="pair_title">Connect to the app</p>
+    <p class="muted" data-i18n="pair_text_pop">Once only: the app asks whether this browser may save and search bookmarks.</p>
+    <button id="pair" class="primary" data-i18n="connect">Connect</button>
+    <div id="pairCode" hidden>
+      <p class="muted" data-i18n="pair_code">Confirm this code in the app:</p>
+      <div class="code" id="code"></div>
+      <p class="muted" id="pairWait" data-i18n="pair_waiting">Waiting for confirmation …</p>
+    </div>
+  </section>
+
+  <!-- Current page -->
+  <section id="viewPage" hidden>
+    <div class="page">
+      <img id="favicon" alt="">
+      <div class="pageText">
+        <input id="title" class="title" spellcheck="false">
+        <div id="url" class="url"></div>
+      </div>
+    </div>
+    <div id="savedInfo" class="saved" hidden></div>
+    <!-- URL unknown, but a bookmark of the same domain exists: update one or create a new one -->
+    <div id="domainBox" class="appBox domainBox" hidden>
+      <div id="domainHint" class="muted"></div>
+      <ul id="domainMatches" class="appMatches"></ul>
+      <div id="domainAll" class="appAll" hidden>
+        <div class="appAllRow"><span id="domainAllInfo" class="muted"></span><button id="domainAllStart" type="button"></button></div>
+        <div id="domainAllWarn" class="appWarn" hidden>
+          <div id="domainAllWarnText"></div>
+          <div class="appWarnBtns"><button id="domainAllYes" type="button" class="danger"></button><button id="domainAllNo" type="button" data-i18n="cancel">Cancel</button></div>
+        </div>
+      </div>
+      <div class="muted domainNew" data-i18n="pop_or_new">Or create it below as a new bookmark.</div>
+    </div>
+    <!-- Program page (Flathub / AlternativeTo): adopt data into a bookmark -->
+    <div id="appBox" class="appBox" hidden>
+      <div class="appHead"><span id="appSource" class="appSource"></span><strong id="appName"></strong></div>
+      <div id="appHint" class="muted"></div>
+      <ul id="appMatches" class="appMatches"></ul>
+      <!-- More bookmarks of the same domain: adopt for all, only after a warning and confirmation -->
+      <div id="appAll" class="appAll" hidden>
+        <div class="appAllRow"><span id="appAllInfo" class="muted"></span><button id="appAllStart" type="button"></button></div>
+        <div id="appAllWarn" class="appWarn" hidden>
+          <div id="appAllWarnText"></div>
+          <div class="appWarnBtns"><button id="appAllYes" type="button" class="danger"></button><button id="appAllNo" type="button" data-i18n="cancel">Cancel</button></div>
+        </div>
+      </div>
+      <button id="appCreate" type="button" hidden data-i18n="pop_app_create_new">＋ Save as new bookmark and apply</button>
+    </div>
+    <div id="thumbBox" class="thumbBox" hidden>
+      <div class="thumbFrame" id="thumbFrame" hidden><img id="thumbPreview" alt=""></div>
+      <button id="thumb" type="button" data-i18n="pop_thumb_update">📷 Update thumbnail</button>
+    </div>
+    <label><span data-i18n="folder">Folder</span>
+      <input id="folder" list="folders" placeholder="Inbox" autocomplete="off" spellcheck="false">
+      <datalist id="folders"></datalist>
+    </label>
+    <label><span data-i18n="tags">Tags</span>
+      <div id="tagBox" class="tagBox">
+        <input id="tagInput" list="tagList" placeholder="Enter tag, Enter" data-i18n-placeholder="tag_input" autocomplete="off" spellcheck="false">
+      </div>
+      <datalist id="tagList"></datalist>
+    </label>
+    <label><span data-i18n="note">Note</span>
+      <textarea id="note" rows="2" placeholder="optional" data-i18n-placeholder="optional"></textarea>
+    </label>
+    <div class="actions">
+      <span id="message" class="muted"></span>
+      <button id="save" class="primary" data-i18n="save">Save</button>
+    </div>
+  </section>
+
+  <section id="viewNotSavable" hidden>
+    <p class="muted" data-i18n="pop_not_savable">This page cannot be saved (http/https only). Search for bookmarks above.</p>
+  </section>
+
+  <!-- Search -->
+  <section id="viewSearch" hidden>
+    <ul id="results"></ul>
+    <p id="noResults" class="muted" hidden data-i18n="nothing_found">Nothing found.</p>
+  </section>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,210 @@
+# Bookmarks Plus – build and release
+#
+#   Push / pull request: tests, desktop (Windows, Linux), Android and server build (artifacts attached to the run)
+#   Main branch:         additionally Docker image "edge"
+#   Tag "v1.2.3":        Docker image "1.2.3" + "latest" and GitHub release with all files
+#
+# Secrets and variables: see README.md → "CI/CD".
+
+name: Build
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Tag without "v", otherwise 0.0.<run number> (MSI requires MAJOR.MINOR.PATCH)
+  APP_VERSION: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('0.0.{0}', github.run_number) }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "22" }
+      - uses: gradle/actions/setup-gradle@v4
+      # Skia (Compose UI tests) needs libGL and fonts
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq libgl1 libfontconfig1 fonts-dejavu-core
+      - run: ./gradlew :shared:jvmTest :sync:test :server:test :enrich:test :desktop:test --continue
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports
+          path: "**/build/reports/tests/"
+          retention-days: 14
+
+  desktop-linux:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "22" }
+      - uses: gradle/actions/setup-gradle@v4
+      # jpackage needs fakeroot and dpkg-deb for .deb, objcopy (binutils) to shrink the runtime
+      - run: sudo apt-get install -y -qq fakeroot binutils
+      - run: ./gradlew :desktop:packageDeb :desktop:createDistributable "-PappVersion=${APP_VERSION#v}"
+      - name: Pakete sammeln
+        run: |
+          V=${APP_VERSION#v}
+          mkdir -p dist
+          cp desktop/build/compose/binaries/main/deb/*.deb "dist/bookmarks-plus_${V}_amd64.deb"
+          tar -C desktop/build/compose/binaries/main/app -czf "dist/bookmarks-plus-${V}-linux-x64.tar.gz" BookmarksPlus
+      - uses: actions/upload-artifact@v4
+        with: { name: desktop-linux, path: dist/, retention-days: 30 }
+
+  desktop-windows:
+    needs: test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "22" }
+      - uses: gradle/actions/setup-gradle@v4
+      # MSI: the Compose plugin downloads WiX itself
+      - run: .\gradlew.bat :desktop:packageMsi :desktop:createDistributable "-PappVersion=$($env:APP_VERSION.TrimStart('v'))"
+      - name: Pakete sammeln
+        run: |
+          $v = $env:APP_VERSION.TrimStart('v')
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item (Get-ChildItem desktop\build\compose\binaries\main\msi\*.msi | Select-Object -First 1).FullName "dist\BookmarksPlus-$v-windows-x64.msi"
+          Compress-Archive -Path desktop\build\compose\binaries\main\app\BookmarksPlus -DestinationPath "dist\BookmarksPlus-$v-windows-x64-portable.zip"
+      - uses: actions/upload-artifact@v4
+        with: { name: desktop-windows, path: dist/, retention-days: 30 }
+
+  android:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "22" }
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Android SDK (API 36)
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" > /dev/null
+      - name: Release key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+          else
+            echo "::warning::Secret ANDROID_KEYSTORE_BASE64 fehlt – die APK wird mit dem Debug-Schlüssel signiert"
+          fi
+      - name: APK bauen
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          V=${APP_VERSION#v}
+          ./gradlew :android:assembleRelease "-PappVersion=$V" -PversionCode=${{ github.run_number }}
+          mkdir -p dist && cp android/build/outputs/apk/release/android-release.apk "dist/BookmarksPlus-${V}.apk"
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "dist/BookmarksPlus-${V}.apk" | head -3
+          rm -f "$RUNNER_TEMP/release.jks"
+      - uses: actions/upload-artifact@v4
+        with: { name: android, path: dist/, retention-days: 30 }
+
+  server:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: "22" }
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew :server:installDist :server:distZip
+      - run: mkdir -p dist && cp server/build/distributions/*.zip "dist/bookmarks-plus-server-${APP_VERSION#v}.zip"
+      - uses: actions/upload-artifact@v4
+        with: { name: server, path: dist/, retention-days: 30 }
+      - uses: actions/upload-artifact@v4
+        with: { name: server-install, path: server/build/install/, retention-days: 1 }
+
+  docker:
+    needs: server
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: server-install, path: server/build/install/ }
+      - run: chmod +x server/build/install/bookmarks-plus-server/bin/*
+      - name: Ziel und Tags
+        id: meta
+        env:
+          DOCKER_IMAGE: ${{ vars.DOCKER_IMAGE }}
+        run: |
+          # Docker Hub or similar if the DOCKER_IMAGE variable is set, otherwise GitHub Container Registry
+          OWNER="${{ github.repository_owner }}"
+          IMAGE="${DOCKER_IMAGE:-ghcr.io/${OWNER,,}/bookmarks-plus-server}"
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            TAGS="$IMAGE:${APP_VERSION#v},$IMAGE:latest"
+          else
+            TAGS="$IMAGE:edge"
+          fi
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
+          echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
+      - uses: docker/login-action@v3
+        if: vars.DOCKER_IMAGE == ''
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/login-action@v3
+        if: vars.DOCKER_IMAGE != ''
+        with:
+          registry: ${{ vars.DOCKER_REGISTRY || 'docker.io' }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: server
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.version=${{ env.APP_VERSION }}
+            org.opencontainers.image.licenses=MIT
+
+  release:
+    needs: [desktop-linux, desktop-windows, android, server, docker]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: dist, pattern: "{desktop-*,android,server}", merge-multiple: true }
+      - run: ls -la dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: Bookmarks Plus ${{ github.ref_name }}
+          generate_release_notes: true
+          files: dist/*
+          body: |
+            | Datei | System |
+            |---|---|
+            | `BookmarksPlus-*-windows-x64.msi` | Windows – Installer |
+            | `BookmarksPlus-*-windows-x64-portable.zip` | Windows – portabel |
+            | `bookmarks-plus_*_amd64.deb` | Debian / Ubuntu |
+            | `bookmarks-plus-*-linux-x64.tar.gz` | Linux – portabel |
+            | `BookmarksPlus-*.apk` | Android 8.0+ |
+            | `bookmarks-plus-server-*.zip` | Sync-Server (Java 17+), alternativ Docker-Image |

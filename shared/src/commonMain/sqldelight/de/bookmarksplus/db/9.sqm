@@ -1,0 +1,5 @@
+-- v9 → v10: store icon sources separately (hashes point to icon): GitHub avatar, Flathub, AlternativeTo and website icon
+ALTER TABLE bookmark ADD COLUMN avatar_hash TEXT;
+ALTER TABLE bookmark ADD COLUMN flathub_icon_hash TEXT;
+ALTER TABLE bookmark ADD COLUMN alternativeto_icon_hash TEXT;
+ALTER TABLE bookmark ADD COLUMN website_icon_hash TEXT;

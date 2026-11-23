@@ -1,0 +1,48 @@
+-- Programs and games (schema v9) ---------------------------------------------------
+
+forApp:
+SELECT id, uuid, url, title, meta_title, meta_description, description, domain, repo_url, website_url, content_type,
+       readme, page_text, favicon_hash, thumbnail_path, shots_json, title_en, title_de,
+       app_name, app_name_source, app_platforms, app_systems, app_license,
+       pkg_winget, pkg_choco, pkg_brew, pkg_npm, pkg_scoop,
+       flathub_url, alternativeto_url, flathub_checked_at, alternativeto_checked_at, alternativeto_icon_hash
+FROM bookmark WHERE id = ?;
+
+-- All app fields at once (merging the sources happens in code)
+updateApp:
+UPDATE bookmark SET app_name = :name, app_name_source = :nameSource, app_platforms = :platforms, app_systems = :systems,
+       app_license = :license, pkg_winget = :winget, pkg_choco = :choco, pkg_brew = :brew, pkg_npm = :npm, pkg_scoop = :scoop,
+       flathub_url = :flathubUrl, alternativeto_url = :alternativetoUrl
+WHERE id = :id;
+
+setLicenseIfMissing:
+UPDATE bookmark SET app_license = ? WHERE id = ? AND app_license IS NULL;
+
+setFlathubStats:
+UPDATE bookmark SET flathub_installs = ?, flathub_download_size = ?, flathub_installed_size = ? WHERE id = ?;
+
+markFlathubChecked:
+UPDATE bookmark SET flathub_checked_at = ? WHERE id = ?;
+
+markAlternativeToChecked:
+UPDATE bookmark SET alternativeto_checked_at = ? WHERE id = ?;
+
+-- Candidates for app maintenance: repos, tools, software directories and everything that already has app data
+appCandidateIds:
+SELECT id FROM bookmark WHERE deleted_at IS NULL AND (
+       app_name IS NOT NULL OR repo_url IS NOT NULL OR download_url IS NOT NULL OR flathub_url IS NOT NULL OR alternativeto_url IS NOT NULL
+    OR content_type IN ('tool', 'repo') OR domain LIKE '%.itch.io'
+    OR domain IN ('github.com', 'gitlab.com', 'codeberg.org', 'sourceforge.net', 'flathub.org', 'alternativeto.net',
+                  'play.google.com', 'apps.apple.com', 'chromewebstore.google.com', 'chrome.google.com', 'addons.mozilla.org',
+                  'hub.docker.com', 'npmjs.com', 'www.npmjs.com', 'formulae.brew.sh', 'community.chocolatey.org',
+                  'chocolatey.org', 'winstall.app', 'winget.run', 'scoop.sh', 'store.steampowered.com', 'gog.com', 'itch.io',
+                  'f-droid.org', 'snapcraft.io', 'microsoft.com', 'apps.microsoft.com')
+) ORDER BY add_date DESC, id DESC;
+
+-- Candidates without app names (for the bundled AI name finding)
+appNamesMissingIds:
+SELECT id FROM bookmark WHERE deleted_at IS NULL AND app_name IS NULL AND app_name_source IS NULL AND id IN ?;
+
+-- remember "not a program" so that the AI is not asked again
+markNoApp:
+UPDATE bookmark SET app_name_source = 'none' WHERE id = ? AND app_name IS NULL;

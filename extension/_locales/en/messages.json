@@ -1,0 +1,506 @@
+{
+  "all_bookmarks": {
+    "message": "All bookmarks"
+  },
+  "already_saved": {
+    "message": "Was already saved"
+  },
+  "apply": {
+    "message": "Apply"
+  },
+  "badge_401": {
+    "message": "Not connected – click the icon"
+  },
+  "badge_http_only": {
+    "message": "Only http(s) pages can be saved"
+  },
+  "badge_link_saved": {
+    "message": "Link saved: {0}"
+  },
+  "badge_saved": {
+    "message": "Saved"
+  },
+  "badge_saved_in": {
+    "message": "Saved in {0}"
+  },
+  "cancel": {
+    "message": "Cancel"
+  },
+  "cmd_open": {
+    "message": "Open Bookmarks Plus"
+  },
+  "cmd_save_page": {
+    "message": "Save current page immediately"
+  },
+  "connect": {
+    "message": "Connect"
+  },
+  "err_unreachable": {
+    "message": "Bookmarks Plus is not reachable – is the app running?"
+  },
+  "ext_description": {
+    "message": "Search, organize and save bookmarks from Bookmarks Plus in the address bar (keyword “b”) and in the side panel."
+  },
+  "failed": {
+    "message": "Failed"
+  },
+  "folder": {
+    "message": "Folder"
+  },
+  "loading": {
+    "message": "loading …"
+  },
+  "m_copy_url": {
+    "message": "Copy address"
+  },
+  "m_edit_tags": {
+    "message": "Edit tags …"
+  },
+  "m_link_with": {
+    "message": "Link with …"
+  },
+  "m_move_to": {
+    "message": "Move to …"
+  },
+  "m_open": {
+    "message": "Open"
+  },
+  "m_open_all_window": {
+    "message": "Open all in a new window"
+  },
+  "m_open_repo": {
+    "message": "Open repository"
+  },
+  "m_open_tab": {
+    "message": "Open in new tab"
+  },
+  "m_open_website": {
+    "message": "Open website"
+  },
+  "m_open_window": {
+    "message": "Open in new window"
+  },
+  "m_rename": {
+    "message": "Rename …"
+  },
+  "m_show_grid": {
+    "message": "Show as tiles"
+  },
+  "m_show_list": {
+    "message": "Show as list"
+  },
+  "m_trash": {
+    "message": "Move to trash"
+  },
+  "menu_open_manager": {
+    "message": "Open Bookmarks Plus in a tab"
+  },
+  "menu_open_panel": {
+    "message": "Open side panel"
+  },
+  "menu_save_link": {
+    "message": "Save link to Bookmarks Plus"
+  },
+  "menu_save_page": {
+    "message": "Save page to Bookmarks Plus"
+  },
+  "n_bookmarks": {
+    "message": "{0} bookmarks"
+  },
+  "note": {
+    "message": "Note"
+  },
+  "nothing_found": {
+    "message": "Nothing found."
+  },
+  "off_text": {
+    "message": "Please start the app. The extension only talks to the app on this computer."
+  },
+  "off_title": {
+    "message": "Bookmarks Plus is not reachable."
+  },
+  "omni_401": {
+    "message": "Not connected – click the extension icon"
+  },
+  "omni_hint": {
+    "message": "Search Bookmarks Plus – Enter opens the first hit, Alt+Enter all hits in the manager"
+  },
+  "omni_not_connected": {
+    "message": "Bookmarks Plus is not connected – click the extension icon and choose “Connect”"
+  },
+  "omni_nothing": {
+    "message": "Nothing found for {0} – Enter opens the manager"
+  },
+  "opt_check_again": {
+    "message": "Check again"
+  },
+  "opt_checking": {
+    "message": "Checking …"
+  },
+  "opt_connected": {
+    "message": "<span class=\"ok\">Connected</span> to the app on port {0}"
+  },
+  "opt_connection": {
+    "message": "Connection to the app"
+  },
+  "opt_connection_hint": {
+    "message": "The app only listens on 127.0.0.1. Paired browsers can also be disconnected in the app under ⚙ → Browser extension."
+  },
+  "opt_disconnect": {
+    "message": "Disconnect"
+  },
+  "opt_import_confirm": {
+    "message": "Import {0} bookmarks from {1} into Bookmarks Plus?"
+  },
+  "opt_import_done": {
+    "message": "<span class=\"ok\">{0} imported</span> – {1} new, {2} already present (linked)"
+  },
+  "opt_import_hint": {
+    "message": "Copies all bookmarks of this browser once into a new folder “Import …” in Bookmarks Plus. Addresses that already exist are added there as links instead of duplicates. The browser bookmarks stay unchanged."
+  },
+  "opt_import_now": {
+    "message": "Import now"
+  },
+  "opt_import_title": {
+    "message": "Import this browser's bookmarks"
+  },
+  "opt_language": {
+    "message": "Language"
+  },
+  "opt_logo": {
+    "message": "Extension"
+  },
+  "opt_not_connected": {
+    "message": "<span class=\"err\">Not connected</span> – click “Connect” in the extension icon."
+  },
+  "opt_port": {
+    "message": "Port"
+  },
+  "opt_shortcuts": {
+    "message": "Keyboard shortcuts"
+  },
+  "opt_shortcuts_hint": {
+    "message": "Alt+Shift+B opens the popup, Alt+Shift+S saves the current page immediately. Change them under <code>chrome://extensions/shortcuts</code> (Vivaldi: Settings → Keyboard)."
+  },
+  "opt_title": {
+    "message": "Bookmarks Plus – Settings"
+  },
+  "opt_transferring": {
+    "message": "Transferring …"
+  },
+  "opt_unreachable": {
+    "message": "<span class=\"err\">App not reachable</span> – is Bookmarks Plus running?"
+  },
+  "optional": {
+    "message": "optional"
+  },
+  "pair_code": {
+    "message": "Confirm this code in the app:"
+  },
+  "pair_rejected": {
+    "message": "Rejected or expired."
+  },
+  "pair_text_pan": {
+    "message": "Once only: the app asks whether this browser may read and change bookmarks."
+  },
+  "pair_text_pop": {
+    "message": "Once only: the app asks whether this browser may save and search bookmarks."
+  },
+  "pair_title": {
+    "message": "Connect to the app"
+  },
+  "pair_waiting": {
+    "message": "Waiting for confirmation …"
+  },
+  "pair_waiting_s": {
+    "message": "Waiting for confirmation … {0} s"
+  },
+  "pan_choose_folder": {
+    "message": "Choose folder"
+  },
+  "pan_close_tab": {
+    "message": "Close tab"
+  },
+  "pan_folder_empty": {
+    "message": "The folder contains no bookmarks directly"
+  },
+  "pan_grid": {
+    "message": "▦ Tiles"
+  },
+  "pan_grid_tip": {
+    "message": "Tiles"
+  },
+  "pan_link": {
+    "message": "Link"
+  },
+  "pan_link_title": {
+    "message": "Additionally file “{0}” in"
+  },
+  "pan_linked_in": {
+    "message": "Linked in {0}"
+  },
+  "pan_list": {
+    "message": "☰ List"
+  },
+  "pan_list_tip": {
+    "message": "List"
+  },
+  "pan_more": {
+    "message": "Load more"
+  },
+  "pan_move_title": {
+    "message": "Move “{0}” to"
+  },
+  "pan_moved_to": {
+    "message": "Moved to {0}"
+  },
+  "pan_no_tabs": {
+    "message": "No tabs found."
+  },
+  "pan_not_savable": {
+    "message": "This page cannot be saved"
+  },
+  "pan_open_tab": {
+    "message": "Open in its own tab"
+  },
+  "pan_open_tabs": {
+    "message": "Open {0} tabs?"
+  },
+  "pan_plus_all": {
+    "message": "＋ all"
+  },
+  "pan_renamed": {
+    "message": "Renamed"
+  },
+  "pan_restored": {
+    "message": "Restored"
+  },
+  "pan_save_inbox": {
+    "message": "Save to the Inbox"
+  },
+  "pan_save_page": {
+    "message": "Save current page to the Inbox"
+  },
+  "pan_save_window": {
+    "message": "Save all tabs of this window to the Inbox"
+  },
+  "pan_saved_inbox": {
+    "message": "Saved to the Inbox"
+  },
+  "pan_search": {
+    "message": "Search … #tag domain: stars:>1k"
+  },
+  "pan_search_folders": {
+    "message": "Search folders …"
+  },
+  "pan_show_as": {
+    "message": "Show as list/tiles"
+  },
+  "pan_show_folder": {
+    "message": "Show folder"
+  },
+  "pan_sort": {
+    "message": "Sort order"
+  },
+  "pan_tabs": {
+    "message": "🗂 Tabs"
+  },
+  "pan_tabs_saved": {
+    "message": "{0} of {1} tabs newly saved"
+  },
+  "pan_tabs_tip": {
+    "message": "Open tabs"
+  },
+  "pan_tags_saved": {
+    "message": "Tags saved"
+  },
+  "pan_tags_title": {
+    "message": "Tags: {0}"
+  },
+  "pan_this_window": {
+    "message": "This window"
+  },
+  "pan_trashed": {
+    "message": "Moved to the trash"
+  },
+  "pan_tree": {
+    "message": "🌳 Tree"
+  },
+  "pan_tree_tip": {
+    "message": "Folder tree"
+  },
+  "pan_url_copied": {
+    "message": "Address copied"
+  },
+  "pan_window_n": {
+    "message": "Window {0}"
+  },
+  "pop_app_applied_many": {
+    "message": "✓ {0} → {1} bookmarks updated"
+  },
+  "pop_app_create": {
+    "message": "＋ Create new in Inbox and apply"
+  },
+  "pop_app_create_new": {
+    "message": "＋ Save as new bookmark and apply"
+  },
+  "pop_app_found": {
+    "message": "Matching bookmark found – apply data to:"
+  },
+  "pop_app_inexact": {
+    "message": "No exact match. Update an entry or create a new one:"
+  },
+  "pop_app_inexact_domain": {
+    "message": "No exact match – found via the domain {0}. Update an entry or create a new one:"
+  },
+  "pop_app_linked": {
+    "message": "Already stored – update data:"
+  },
+  "pop_app_none": {
+    "message": "No matching bookmark found."
+  },
+  "pop_app_reading": {
+    "message": "Reading program data …"
+  },
+  "pop_app_too_old": {
+    "message": "The app is too old for this feature – please update it."
+  },
+  "pop_app_warn": {
+    "message": "Warning: the program data (name, platform, system, license, package IDs, links) is written to all {0} bookmarks of the domain {1} and overwrites existing details there. This cannot be undone in bulk. Only continue if all of them really belong to this program."
+  },
+  "pop_applied": {
+    "message": "✓ Applied"
+  },
+  "pop_apply_all": {
+    "message": "Apply to all {0} …"
+  },
+  "pop_capture_failed": {
+    "message": "Capture failed"
+  },
+  "pop_create_inbox": {
+    "message": "Create new in Inbox"
+  },
+  "pop_domain_hint": {
+    "message": "This address is not saved, but there are {0} on {1}. The stored address stays unchanged; the page currently shown can be applied as thumbnail:"
+  },
+  "pop_domain_warn": {
+    "message": "Warning: the current thumbnail as well as tags, folder and note from the form are written to all {0} bookmarks of the domain {1} and replace their previous thumbnail. This cannot be undone in bulk. Only continue if it really should apply to all."
+  },
+  "pop_fields_btn": {
+    "message": "Details"
+  },
+  "pop_fields_tip": {
+    "message": "Apply title, note, folder and tags from the form"
+  },
+  "pop_folder_not_found": {
+    "message": "Folder not found – pick one from the list"
+  },
+  "pop_in_folders": {
+    "message": " in {0}"
+  },
+  "pop_in_trash": {
+    "message": "🗑 In the trash"
+  },
+  "pop_more_bookmarks_domain": {
+    "message": "＋ {0} more bookmarks with the domain {1}"
+  },
+  "pop_more_domain": {
+    "message": "＋ {0} more with the domain {1}"
+  },
+  "pop_not_savable": {
+    "message": "This page cannot be saved (http/https only). Search for bookmarks above."
+  },
+  "pop_one_bookmark": {
+    "message": "one bookmark"
+  },
+  "pop_or_new": {
+    "message": "Or create it below as a new bookmark."
+  },
+  "pop_save_changes": {
+    "message": "Save changes"
+  },
+  "pop_saved": {
+    "message": "✓ Saved"
+  },
+  "pop_search": {
+    "message": "Search bookmarks …"
+  },
+  "pop_thumb_btn": {
+    "message": "📷 Thumbnail"
+  },
+  "pop_thumb_not_saved": {
+    "message": "The page is not saved yet – save it first, then update the thumbnail"
+  },
+  "pop_thumb_tip": {
+    "message": "Use the page shown as thumbnail of this bookmark"
+  },
+  "pop_thumb_update": {
+    "message": "📷 Update thumbnail"
+  },
+  "pop_thumb_updated": {
+    "message": "Thumbnail updated ✓"
+  },
+  "pop_update_this": {
+    "message": "Update this one"
+  },
+  "pop_updated_many": {
+    "message": "✓ {0} bookmarks updated (addresses unchanged)"
+  },
+  "pop_updated_one": {
+    "message": "✓ “{0}” updated (address unchanged)"
+  },
+  "pop_updated_partial": {
+    "message": "{0} of {1} updated – error: {2}"
+  },
+  "pop_yes_change": {
+    "message": "Yes, change {0} bookmarks"
+  },
+  "remove": {
+    "message": "Remove"
+  },
+  "retry": {
+    "message": "Try again"
+  },
+  "save": {
+    "message": "Save"
+  },
+  "saved_check": {
+    "message": "Saved ✓"
+  },
+  "settings": {
+    "message": "Settings"
+  },
+  "sort_added": {
+    "message": "Added"
+  },
+  "sort_lastcommit": {
+    "message": "Last commit"
+  },
+  "sort_modified": {
+    "message": "Updated"
+  },
+  "sort_title": {
+    "message": "Title"
+  },
+  "tag_input": {
+    "message": "Enter tag, Enter"
+  },
+  "tags": {
+    "message": "Tags"
+  },
+  "task_bot_check": {
+    "message": "Bot check not passed"
+  },
+  "task_host_denied": {
+    "message": "Host not allowed"
+  },
+  "title": {
+    "message": "Title"
+  },
+  "undo": {
+    "message": "Undo"
+  },
+  "update": {
+    "message": "Update"
+  }
+}

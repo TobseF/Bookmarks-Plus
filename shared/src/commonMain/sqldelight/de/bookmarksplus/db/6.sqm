@@ -1,0 +1,14 @@
+-- v6 → v7: AI texts in two languages, tag translations
+ALTER TABLE bookmark ADD COLUMN title_de TEXT;
+ALTER TABLE bookmark ADD COLUMN title_en TEXT;
+ALTER TABLE bookmark ADD COLUMN desc_de TEXT;
+ALTER TABLE bookmark ADD COLUMN desc_en TEXT;
+ALTER TABLE bookmark ADD COLUMN summary_de TEXT;
+ALTER TABLE bookmark ADD COLUMN summary_en TEXT;
+ALTER TABLE bookmark ADD COLUMN ai_models TEXT;
+
+CREATE TABLE tag_i18n (
+    name TEXT NOT NULL PRIMARY KEY COLLATE NOCASE,
+    de TEXT,
+    en TEXT
+);

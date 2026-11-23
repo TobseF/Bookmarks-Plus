@@ -1,0 +1,5 @@
+-- v2 → v3: fields for the AI evaluation (phase 4)
+ALTER TABLE bookmark ADD COLUMN page_text TEXT;
+ALTER TABLE bookmark ADD COLUMN ai_tags TEXT;
+ALTER TABLE bookmark ADD COLUMN ai_folder TEXT;
+ALTER TABLE bookmark ADD COLUMN ai_at INTEGER;

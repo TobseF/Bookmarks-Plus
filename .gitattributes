@@ -1,0 +1,12 @@
+# Set line endings (Windows development, Linux CI)
+* text=auto
+gradlew text eol=lf
+*.sh text eol=lf
+*.bat text eol=crlf
+Dockerfile text eol=lf
+
+# Binary files
+*.png binary
+*.ico binary
+*.jar binary
+*.jks binary

@@ -1,0 +1,17 @@
+-- v5 → v6: sync (placement UUIDs, change log)
+ALTER TABLE placement ADD COLUMN uuid TEXT;
+UPDATE placement SET uuid = lower(hex(randomblob(16)));
+CREATE UNIQUE INDEX placement_uuid_idx ON placement(uuid);
+
+-- Change log for sync: per record the last change time (ms), deletion marker and whether it
+-- still has to be uploaded. Maintained by triggers (except while sync changes are being applied).
+CREATE TABLE sync_change (
+    entity TEXT NOT NULL,
+    key TEXT NOT NULL,
+    changed_at INTEGER NOT NULL,
+    deleted INTEGER NOT NULL DEFAULT 0,
+    pending INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (entity, key)
+);
+CREATE INDEX sync_change_pending ON sync_change(pending);
+
