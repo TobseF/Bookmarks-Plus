@@ -21,7 +21,11 @@ import de.bookmarksplus.sync.FirstSyncDecisionNeeded
 import de.bookmarksplus.sync.FirstSyncMode
 import de.bookmarksplus.sync.FtpStore
 import de.bookmarksplus.sync.Secrets
+import de.bookmarksplus.sync.SyncCancelledException
+import de.bookmarksplus.sync.SyncControl
 import de.bookmarksplus.sync.SyncEngine
+import de.bookmarksplus.sync.SyncPhase
+import de.bookmarksplus.sync.SyncProgress
 import de.bookmarksplus.sync.SyncTargetException
 import de.bookmarksplus.util.Urls
 import kotlinx.coroutines.Dispatchers
@@ -49,6 +53,8 @@ sealed interface SyncOutcome {
     data object NeedsFirstSyncChoice : SyncOutcome
     data class Failed(val message: String) : SyncOutcome
     data object NotConfigured : SyncOutcome
+    /** Stopped by the user; the next run continues where it left off. */
+    data class Stopped(val text: String) : SyncOutcome
 }
 
 data class AddResult(val id: Long, val created: Boolean)
@@ -87,6 +93,26 @@ class BookmarkStore(context: Context) {
     private val _syncStatus = MutableStateFlow(settings.get("syncCfg.status"))
     val syncStatus: StateFlow<String?> = _syncStatus.asStateFlow()
     private val syncMutex = Mutex()
+    private val _syncProgress = MutableStateFlow<SyncProgress?>(null)
+    /** Progress of the running sync (null = none): entries first, then images. */
+    val syncProgress: StateFlow<SyncProgress?> = _syncProgress.asStateFlow()
+    private val _syncPaused = MutableStateFlow(false)
+    val syncPaused: StateFlow<Boolean> = _syncPaused.asStateFlow()
+    @Volatile private var syncControl: SyncControl? = null
+
+    fun pauseSync() { syncControl?.pause(); _syncPaused.value = true }
+    fun resumeSync() { syncControl?.resume(); _syncPaused.value = false }
+    fun stopSync() { syncControl?.cancel(); _syncPaused.value = false }
+
+    fun phaseText(p: SyncPhase): String = str(
+        when (p) {
+            SyncPhase.Prepare -> R.string.sync_phase_prepare
+            SyncPhase.Fetch -> R.string.sync_phase_fetch
+            SyncPhase.Send -> R.string.sync_phase_send
+            SyncPhase.ImagesUp -> R.string.sync_phase_images_up
+            SyncPhase.ImagesDown -> R.string.sync_phase_images_down
+        },
+    )
 
     // ------------------------------------------------------------------------------------------- Settings
 
@@ -228,12 +254,15 @@ class BookmarkStore(context: Context) {
         if (syncTarget == SyncTarget.None || keyText.isEmpty()) return@withContext SyncOutcome.NotConfigured
         syncMutex.withLock {
             _syncRunning.value = true
+            _syncPaused.value = false
+            _syncProgress.value = SyncProgress(SyncPhase.Prepare, 0, 0)
+            val control = SyncControl().also { syncControl = it }
             try {
                 val key = Base64.getDecoder().decode(keyText)
-                var r = openStore().use { SyncEngine(dbFile, mediaDir, it, key, syncMedia).sync(mode) }
+                var r = openStore().use { SyncEngine(dbFile, mediaDir, it, key, syncMedia, control = control, onProgress = { p -> _syncProgress.value = p }).sync(mode) }
                 // merge an "Inbox" created here before the first sync with the one from the desktop and pass it on right away
                 if (repo.mergeRootFolders("Inbox") > 0) {
-                    val again = openStore().use { SyncEngine(dbFile, mediaDir, it, key, syncMedia).sync() }
+                    val again = openStore().use { SyncEngine(dbFile, mediaDir, it, key, syncMedia, control = control, onProgress = { p -> _syncProgress.value = p }).sync() }
                     r = r.copy(pulled = r.pulled + again.pulled, pushed = r.pushed + again.pushed)
                 }
                 if (r.pulled > 0) runCatching { index.rebuild() }
@@ -246,12 +275,22 @@ class BookmarkStore(context: Context) {
             } catch (e: FirstSyncDecisionNeeded) {
                 setStatus(str(R.string.sync_first_waiting))
                 SyncOutcome.NeedsFirstSyncChoice
+            } catch (e: SyncCancelledException) {
+                // everything transferred so far is kept
+                runCatching { index.rebuild() }
+                reload()
+                val text = str(R.string.sync_stopped)
+                setStatus(text)
+                SyncOutcome.Stopped(text)
             } catch (e: Exception) {
                 val msg = str(R.string.sync_failed, errorText(e))
                 setStatus(msg)
                 SyncOutcome.Failed(msg)
             } finally {
                 _syncRunning.value = false
+                _syncProgress.value = null
+                _syncPaused.value = false
+                syncControl = null
             }
         }
     }

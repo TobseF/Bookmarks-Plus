@@ -82,10 +82,14 @@ class SyncEngine(
     key: ByteArray,
     private val syncMedia: Boolean = true,
     private val log: (String) -> Unit = {},
+    private val control: SyncControl = SyncControl(),
+    private val onProgress: (SyncProgress) -> Unit = {},
 ) {
     /** Convenience: file targets (FTP, folder) as record files. */
-    constructor(dbFile: File, mediaDir: File, store: BlobStore, key: ByteArray, syncMedia: Boolean = true, log: (String) -> Unit = {}) :
-        this(dbFile, mediaDir, FileRecordStore(store), key, syncMedia, log)
+    constructor(
+        dbFile: File, mediaDir: File, store: BlobStore, key: ByteArray, syncMedia: Boolean = true, log: (String) -> Unit = {},
+        control: SyncControl = SyncControl(), onProgress: (SyncProgress) -> Unit = {},
+    ) : this(dbFile, mediaDir, FileRecordStore(store), key, syncMedia, log, control, onProgress)
 
     private val keys = RecordKeys(key)
     private lateinit var local: LocalRecords
@@ -93,30 +97,29 @@ class SyncEngine(
     private var mediaUp = 0
     private var mediaDown = 0
     private var conflicts = 0
+    private var done = 0
+    private var total = 0
 
+    private fun report(phase: SyncPhase) = onProgress(SyncProgress(phase, done, total))
+
+    private fun step(phase: SyncPhase, n: Int = 1) { done += n; report(phase) }
+
+    /**
+     * Images are not transferred while entries are read or applied: they are queued (tables `sync_media_up` /
+     * `sync_media_down`) and sent after all bookmarks, so the bookmarks arrive first. The queue survives a stop.
+     */
     private val media = object : MediaTransfer {
         override fun upload(path: String): String? {
             val f = File(path).takeIf { it.isFile } ?: return null
-            val bytes = f.readBytes()
-            val name = keys.mediaName(bytes)
-            if (name !in remoteMedia()) {
-                store.blobs.put(name, Crypto.seal(keys.enc, bytes, name, compress = false))
-                remoteMedia() += name
-                mediaUp++
-            }
+            val name = keys.mediaName(f.readBytes())
+            local.update("INSERT OR REPLACE INTO sync_media_up(name, path) VALUES (?, ?)", name, f.absolutePath)
             return name.removePrefix("media/").removeSuffix(".bin")
         }
 
         override fun download(hash: String): String? {
             if (!hash.matches(Regex("[0-9a-f]{64}"))) return null
             val target = File(mediaDir, "sync/$hash.img")
-            if (target.isFile) return target.absolutePath
-            val name = "media/$hash.bin"
-            val blob = runCatching { store.blobs.get(name) }.getOrNull() ?: return null
-            val bytes = runCatching { Crypto.open(keys.enc, blob, name) }.getOrNull() ?: return null
-            target.parentFile.mkdirs()
-            target.writeBytes(bytes)
-            mediaDown++
+            if (!target.isFile) local.update("INSERT OR IGNORE INTO sync_media_down(hash) VALUES (?)", hash)
             return target.absolutePath
         }
     }
@@ -141,10 +144,14 @@ class SyncEngine(
             log(tr("sync.firstSync.mode", mode))
         }
 
+        // the number of local changes is known at once; the remote number follows with the change list
+        total = local.pending().count { it.e in LocalRecords.KINDS }
+        report(SyncPhase.Prepare)
         val pulled = pull(force = mode == FirstSyncMode.ReplaceRemote && first)
         val pushed = push()
         if (first) cleanupLegacy()
         putSetting(LAST_SYNC, System.currentTimeMillis().toString())
+        if (syncMedia) { uploadMedia(); downloadMedia() }
         SyncResult(pulled, pushed, false, mediaUp, mediaDown, first, conflicts)
     }
 
@@ -172,9 +179,12 @@ class SyncEngine(
         val toDelete = metas.values.filter { it.deleted && known[it.id] != null && known[it.id]!!.third != it.rev } +
             vanished.map { RemoteRecord(it, "", 0, true) }
 
+        total += toFetch.size
+        report(SyncPhase.Fetch)
         val incoming = ArrayList<Entry>()
         val revs = HashMap<String, String>()
-        toFetch.chunked(500).forEach { chunk ->
+        toFetch.chunked(25).forEach { chunk ->
+            control.checkpoint()
             store.fetch(chunk).forEach { (id, revData) ->
                 val e = runCatching { keys.open(id, revData.second) }.getOrElse {
                     log(tr("sync.record.undecryptable", id)); return@forEach
@@ -182,7 +192,9 @@ class SyncEngine(
                 incoming += e
                 revs[id] = revData.first
             }
+            step(SyncPhase.Fetch, chunk.size)
         }
+        control.checkpoint()
         for (r in toDelete) {
             val (kind, k, _) = known[r.id] ?: continue
             incoming += Entry(kind, k, r.t, d = true)
@@ -218,7 +230,20 @@ class SyncEngine(
 
     private fun push(): Int {
         var pushed = 0
-        var todo = local.pending().filter { it.e in LocalRecords.KINDS }.distinctBy { it.e + "\u0000" + it.k }
+        val all = local.pending().filter { it.e in LocalRecords.KINDS }.distinctBy { it.e + "\u0000" + it.k }
+        report(SyncPhase.Send)
+        for (batch in all.chunked(25)) {
+            control.checkpoint()
+            pushed += pushBatch(batch)
+            step(SyncPhase.Send, batch.size)
+        }
+        if (pushed > 0) log(tr("sync.sent", pushed))
+        return pushed
+    }
+
+    private fun pushBatch(batch: List<Entry>): Int {
+        var pushed = 0
+        var todo = batch
         for (round in 0 until 3) {
             if (todo.isEmpty()) break
             val entries = todo.map { p -> local.entry(p.e, p.k, p.t, p.d) }
@@ -263,14 +288,65 @@ class SyncEngine(
             if (take.isNotEmpty()) local.apply(take)
             todo = retry
         }
-        if (pushed > 0) log(tr("sync.sent", pushed))
         return pushed
+    }
+
+    // ------------------------------------------------------------------------------------------------ Images
+
+    /** Sends queued images (after all bookmarks). Rows stay queued until sent, so a stop loses nothing. */
+    private fun uploadMedia() {
+        val queue = ArrayList<Pair<String, String>>()
+        local.query("SELECT name, path FROM sync_media_up") { queue += it.getString(1) to it.getString(2) }
+        if (queue.isEmpty()) return
+        total += queue.size
+        report(SyncPhase.ImagesUp)
+        val remote = remoteMedia()
+        for ((name, path) in queue) {
+            control.checkpoint()
+            val f = File(path)
+            if (name !in remote && f.isFile) {
+                val ok = runCatching {
+                    store.blobs.put(name, Crypto.seal(keys.enc, f.readBytes(), name, compress = false))
+                    remote += name
+                    mediaUp++
+                }.isSuccess
+                if (ok) local.update("DELETE FROM sync_media_up WHERE name = ?", name) else log(tr("sync.media.failed", name))
+            } else local.update("DELETE FROM sync_media_up WHERE name = ?", name)
+            step(SyncPhase.ImagesUp)
+        }
+    }
+
+    /** Fetches queued images. Images the target does not have yet stay queued for the next run. */
+    private fun downloadMedia() {
+        val queue = ArrayList<String>()
+        local.query("SELECT hash FROM sync_media_down") { queue += it.getString(1) }
+        if (queue.isEmpty()) return
+        total += queue.size
+        report(SyncPhase.ImagesDown)
+        val remote = remoteMedia()
+        for (hash in queue) {
+            control.checkpoint()
+            val name = "media/$hash.bin"
+            val target = File(mediaDir, "sync/$hash.img")
+            if (target.isFile) local.update("DELETE FROM sync_media_down WHERE hash = ?", hash)
+            else if (name in remote) {
+                val ok = runCatching {
+                    val bytes = Crypto.open(keys.enc, store.blobs.get(name) ?: error("missing"), name)
+                    target.parentFile.mkdirs()
+                    target.writeBytes(bytes)
+                }.isSuccess
+                if (ok) { mediaDown++; local.update("DELETE FROM sync_media_down WHERE hash = ?", hash) } else log(tr("sync.media.failed", name))
+            }
+            step(SyncPhase.ImagesDown)
+        }
     }
 
     // ------------------------------------------------------------------------------------------------ Helpers
 
     private fun ensureTables() {
         local.exec("CREATE TABLE IF NOT EXISTS sync_rec (rid TEXT PRIMARY KEY, kind TEXT NOT NULL, k TEXT NOT NULL, rev TEXT)")
+        local.exec("CREATE TABLE IF NOT EXISTS sync_media_up (name TEXT PRIMARY KEY, path TEXT NOT NULL)")
+        local.exec("CREATE TABLE IF NOT EXISTS sync_media_down (hash TEXT PRIMARY KEY)")
     }
 
     private fun rev(id: String): String? = local.text("SELECT rev FROM sync_rec WHERE rid = ?", id)

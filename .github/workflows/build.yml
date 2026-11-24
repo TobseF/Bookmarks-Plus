@@ -150,25 +150,36 @@ jobs:
         id: meta
         env:
           DOCKER_IMAGE: ${{ vars.DOCKER_IMAGE }}
+          DOCKER_REGISTRY: ${{ vars.DOCKER_REGISTRY }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         run: |
-          # Docker Hub or similar if the DOCKER_IMAGE variable is set, otherwise GitHub Container Registry
+          # Always GitHub Container Registry; additionally Docker Hub (or DOCKER_REGISTRY) when DOCKER_USERNAME is set.
+          # Image name there: variable DOCKER_IMAGE, otherwise <DOCKER_USERNAME>/bookmarks-plus-server.
           OWNER="${{ github.repository_owner }}"
-          IMAGE="${DOCKER_IMAGE:-ghcr.io/${OWNER,,}/bookmarks-plus-server}"
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
-            TAGS="$IMAGE:${APP_VERSION#v},$IMAGE:latest"
-          else
-            TAGS="$IMAGE:edge"
+          IMAGES="ghcr.io/${OWNER,,}/bookmarks-plus-server"
+          if [ -n "$DOCKER_USERNAME" ]; then
+            HUB="${DOCKER_IMAGE:-${DOCKER_USERNAME,,}/bookmarks-plus-server}"
+            if [ -n "$DOCKER_REGISTRY" ] && [[ "$HUB" != "$DOCKER_REGISTRY"/* ]]; then HUB="$DOCKER_REGISTRY/$HUB"; fi
+            IMAGES="$IMAGES $HUB"
+            echo "hub=true" >> "$GITHUB_OUTPUT"
           fi
-          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
-          echo "tags=$TAGS" >> "$GITHUB_OUTPUT"
+          TAGS=""
+          for IMAGE in $IMAGES; do
+            if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+              TAGS="$TAGS,$IMAGE:${APP_VERSION#v},$IMAGE:latest"
+            else
+              TAGS="$TAGS,$IMAGE:edge"
+            fi
+          done
+          echo "tags=${TAGS#,}" >> "$GITHUB_OUTPUT"
+          echo "Ziele: ${TAGS#,}"
       - uses: docker/login-action@v3
-        if: vars.DOCKER_IMAGE == ''
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - uses: docker/login-action@v3
-        if: vars.DOCKER_IMAGE != ''
+        if: steps.meta.outputs.hub == 'true'
         with:
           registry: ${{ vars.DOCKER_REGISTRY || 'docker.io' }}
           username: ${{ secrets.DOCKER_USERNAME }}

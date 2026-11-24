@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudSync
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.LinkOff
@@ -137,6 +138,7 @@ private fun iconOf(kind: BatchKind): ImageVector = when (kind) {
     BatchKind.Links -> Icons.Filled.LinkOff
     BatchKind.Ai -> Icons.Filled.AutoAwesome
     BatchKind.Apps -> Icons.Filled.Apps
+    BatchKind.Sync -> Icons.Filled.CloudSync
 }
 
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)

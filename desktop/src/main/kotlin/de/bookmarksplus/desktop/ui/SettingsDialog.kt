@@ -109,6 +109,8 @@ fun SettingsDialog(state: AppState, onImport: () -> Unit = {}, onExport: () -> U
                     }
                     Spacer(Modifier.height(12.dp))
                 }
+                // the dialog covers the toast of the main window, so show it here as well
+                Toast(state, Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp))
             }
         },
     )
@@ -632,7 +634,8 @@ internal fun SyncSettings(state: AppState) {
         Spacer(Modifier.height(6.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(0.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Choice(tr("common.testConnection"), false) { state.testSyncTarget() }
-            Choice(if (state.syncRunning) tr("common.running") else tr("sync.now"), false) { state.syncNow() }
+            // the progress is shown as a task at the bottom left of the sidebar, so close the settings
+            Choice(if (state.syncRunning) tr("common.running") else tr("sync.now"), false) { state.showSettings = false; state.syncNow() }
             Choice(tr("backup.now"), false) { state.backupNow() }
         }
     }

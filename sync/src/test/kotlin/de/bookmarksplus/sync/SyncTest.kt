@@ -137,6 +137,28 @@ class SyncTest {
     }
 
     @Test
+    fun `progress reports totals first and a stopped sync continues later`() {
+        val remote = FolderStore(tmp())
+        val a = Device(tmp(), { FileRecordStore(remote) }, key)
+        val b = Device(tmp(), { FileRecordStore(remote) }, key)
+        try {
+            a.repo.import(NetscapeParser.parse(html))
+            a.sync()
+            // B is stopped right after the first progress report → nothing is lost, the next run completes
+            val control = SyncControl()
+            val seen = ArrayList<SyncProgress>()
+            assertFailsWith<SyncCancelledException> {
+                FileRecordStore(remote).use {
+                    SyncEngine(b.dbFile, File(b.dir, "media"), it, key, control = control, onProgress = { p -> seen += p; if (p.phase == SyncPhase.Fetch && p.done > 0) control.cancel() }).sync()
+                }
+            }
+            assertTrue(seen.any { it.phase == SyncPhase.Fetch && it.done == 0 && it.total >= 5 }, "total is known before the transfer: $seen")
+            b.sync()
+            assertEquals(state(a.lib()), state(b.lib()))
+        } finally { a.close(); b.close() }
+    }
+
+    @Test
     fun convergeOverFiles() {
         val remote = FolderStore(tmp())
         converge({ FileRecordStore(remote) }) {

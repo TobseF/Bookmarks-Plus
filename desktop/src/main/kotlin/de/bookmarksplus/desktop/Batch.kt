@@ -1,7 +1,7 @@
 package de.bookmarksplus.desktop
 
 /** Background service that runs a batch (determines whose progress is shown). */
-enum class BatchKind { Enrich, Links, Ai, Apps }
+enum class BatchKind { Enrich, Links, Ai, Apps, Sync }
 
 enum class BatchPhase { Running, Done, Cancelled }
 

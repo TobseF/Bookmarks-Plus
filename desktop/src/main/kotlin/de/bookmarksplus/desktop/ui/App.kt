@@ -64,22 +64,7 @@ fun App(state: AppState, searchFocus: FocusRequester, onImport: () -> Unit, onEx
                     DetailPane(state, Modifier.width(360.dp))
                 }
             }
-            state.message?.let { msg ->
-                val action = state.messageAction
-                LaunchedEffect(msg, action) { delay(if (action != null) 7000 else 4000); state.message = null; state.messageAction = null }
-                Row(
-                    Modifier.align(Alignment.BottomCenter).padding(bottom = 20.dp).clip(RoundedCornerShape(10.dp))
-                        .background(Palette.SurfaceHighest).padding(horizontal = 16.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text(msg, color = Palette.Text)
-                    if (action != null) Text(
-                        action.first, color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(start = 16.dp).clip(RoundedCornerShape(4.dp))
-                            .clickable { state.message = null; state.messageAction = null; action.second() }.padding(2.dp),
-                    )
-                }
-            }
+            if (!state.showSettings) Toast(state, Modifier.align(Alignment.BottomCenter).padding(bottom = 20.dp))
             state.drag?.let { d ->
                 Row(
                     Modifier.offset { androidx.compose.ui.unit.IntOffset(d.x.toInt() + 14, d.y.toInt() + 10) }
@@ -100,5 +85,24 @@ fun App(state: AppState, searchFocus: FocusRequester, onImport: () -> Unit, onEx
         }
         }
         }
+    }
+}
+
+/** Short message at the bottom (with optional action). Also shown inside the settings dialog, which covers the main window. */
+@Composable
+fun Toast(state: AppState, modifier: Modifier = Modifier) {
+    val msg = state.message ?: return
+    val action = state.messageAction
+    LaunchedEffect(msg, action) { delay(if (action != null) 7000 else 4000); state.message = null; state.messageAction = null }
+    Row(
+        modifier.clip(RoundedCornerShape(10.dp)).background(Palette.SurfaceHighest).padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(msg, color = Palette.Text)
+        if (action != null) Text(
+            action.first, color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(start = 16.dp).clip(RoundedCornerShape(4.dp))
+                .clickable { state.message = null; state.messageAction = null; action.second() }.padding(2.dp),
+        )
     }
 }

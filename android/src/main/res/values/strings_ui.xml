@@ -101,4 +101,15 @@
     <string name="color_pink">Pink</string>
     <string name="detail_folders_count">Folders (%1$s)</string>
     <string name="health_dead">dead</string>
+    <string name="sync_phase_prepare">Comparing changes</string>
+    <string name="sync_phase_fetch">Receiving bookmarks</string>
+    <string name="sync_phase_send">Sending bookmarks</string>
+    <string name="sync_phase_images_up">Uploading images</string>
+    <string name="sync_phase_images_down">Downloading images</string>
+    <string name="sync_comparing">Comparing …</string>
+    <string name="sync_paused">Sync paused</string>
+    <string name="sync_pause">Pause</string>
+    <string name="sync_resume">Resume</string>
+    <string name="sync_stop">Stop</string>
+    <string name="sync_stopped">Sync stopped – it continues where it left off next time</string>
 </resources>

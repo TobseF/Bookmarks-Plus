@@ -432,6 +432,7 @@ class AppState(
             BatchKind.Links -> linkChecker.progress.value.total
             BatchKind.Ai -> ai.progress.value.total
             BatchKind.Apps -> apps.progress.value.total
+            BatchKind.Sync -> 0
         }
         batch = BatchStatus(kind, label, total = total)
         return true
@@ -461,17 +462,18 @@ class AppState(
         BatchKind.Links -> linkChecker.pause
         BatchKind.Ai -> ai.pause
         BatchKind.Apps -> apps.pause
+        BatchKind.Sync -> null
     }
 
     fun pauseBatch() {
         val b = batch?.takeIf { it.running && !it.paused } ?: return
-        gateOf(b.kind).pause()
+        if (b.kind == BatchKind.Sync) syncControl?.pause() else gateOf(b.kind)?.pause()
         batch = b.copy(paused = true)
     }
 
     fun resumeBatch() {
         val b = batch?.takeIf { it.running && it.paused } ?: return
-        gateOf(b.kind).resume()
+        if (b.kind == BatchKind.Sync) syncControl?.resume() else gateOf(b.kind)?.resume()
         batch = b.copy(paused = false)
     }
 
@@ -485,6 +487,7 @@ class AppState(
             BatchKind.Links -> linkChecker.stop()
             BatchKind.Ai -> ai.stop()
             BatchKind.Apps -> apps.stop()
+            BatchKind.Sync -> syncControl?.cancel()
         }
     }
 
@@ -1329,6 +1332,8 @@ class AppState(
         val n = withContext(Dispatchers.IO) {
             openRecordStore().use { rs -> if (rs is de.bookmarksplus.sync.ServerRecordStore) rs.count() else rs.changes(null).records.count { !it.deleted }.toLong() }
         }
+        // show the real state: a successful test replaces an earlier error message
+        setStatus(tr("sync.connectionOk", n))
         notify(tr("sync.connectionOk", n))
     }
 
@@ -1354,21 +1359,70 @@ class AppState(
         startSyncLoop()
     }
 
-    fun syncNow(mode: de.bookmarksplus.sync.FirstSyncMode = de.bookmarksplus.sync.FirstSyncMode.Ask) {
+    /** Pause/stop switch of the running sync (also driven by the task panel at the bottom left). */
+    private var syncControl: de.bookmarksplus.sync.SyncControl? = null
+
+    /** Called by the engine (IO thread): updates the sync task in the status display. */
+    private fun syncProgress(p: de.bookmarksplus.sync.SyncProgress) {
+        val step = when (p.phase) {
+            de.bookmarksplus.sync.SyncPhase.Prepare -> tr("sync.phase.prepare")
+            de.bookmarksplus.sync.SyncPhase.Fetch -> tr("sync.phase.fetch")
+            de.bookmarksplus.sync.SyncPhase.Send -> tr("sync.phase.send")
+            de.bookmarksplus.sync.SyncPhase.ImagesUp -> tr("sync.phase.imagesUp")
+            de.bookmarksplus.sync.SyncPhase.ImagesDown -> tr("sync.phase.imagesDown")
+        }
+        batch?.takeIf { it.kind == BatchKind.Sync && it.running }?.let { batch = it.copy(done = p.done, total = p.total, step = step) }
+    }
+
+    /** [auto] = started by the timer: if nothing had to be transferred, the task disappears again. */
+    fun syncNow(mode: de.bookmarksplus.sync.FirstSyncMode = de.bookmarksplus.sync.FirstSyncMode.Ask, auto: Boolean = false) {
         val file = dbFile ?: return
         val key = syncKey() ?: run { showSettings = true; notify(tr("sync.setupFirst")); return }
+        if (syncRunning) return
+        val control = de.bookmarksplus.sync.SyncControl().also { syncControl = it }
+        // as a task in the status display – unless another batch occupies it (then it only runs in the background)
+        if (batch?.running != true) {
+            batchCancelRequested = false
+            batch = BatchStatus(BatchKind.Sync, tr("batch.sync"), step = tr("sync.phase.prepare"))
+        }
+        fun endTask(summary: String?, dismiss: Boolean = false) {
+            val b = batch?.takeIf { it.kind == BatchKind.Sync && it.running } ?: return
+            if (dismiss) batch = null else batchProgress(BatchKind.Sync, false, b.done, b.total, null) { summary }
+        }
         syncJob("Sync") {
             val r = try {
-                withContext(Dispatchers.IO) { openRecordStore().use { de.bookmarksplus.sync.SyncEngine(file, mediaRoot, it, key, syncMedia).sync(mode) } }
+                withContext(Dispatchers.IO) {
+                    openRecordStore().use {
+                        de.bookmarksplus.sync.SyncEngine(file, mediaRoot, it, key, syncMedia, control = control, onProgress = ::syncProgress).sync(mode)
+                    }
+                }
             } catch (e: de.bookmarksplus.sync.FirstSyncDecisionNeeded) {
+                batch = batch?.takeUnless { it.kind == BatchKind.Sync }
                 firstSyncChoice = true
                 return@syncJob
+            } catch (e: de.bookmarksplus.sync.SyncCancelledException) {
+                // everything transferred so far is kept; the next run continues
+                batchCancelRequested = true
+                endTask(tr("sync.stoppedSummary"))
+                setStatus(tr("sync.stopped"))
+                missingImages.clear()
+                withContext(Dispatchers.IO) { index.rebuild() }
+                reload()
+                return@syncJob
+            } catch (e: Exception) {
+                batchCancelRequested = true
+                val msg = (e as? de.bookmarksplus.sync.SyncTargetException)?.message ?: e.message ?: e::class.simpleName
+                endTask(tr("common.failed", "Sync", msg))
+                throw e
             }
             if (r.pulled > 0) withContext(Dispatchers.IO) { index.rebuild() }
+            missingImages.clear() // images that just arrived may have been reported missing before
             reload()
             val time = java.time.LocalTime.now().withNano(0)
-            setStatus(tr("sync.lastSynced", time, r.pulled, r.pushed) + (if (r.mediaUp + r.mediaDown > 0) tr("sync.images", r.mediaUp + r.mediaDown) else "") +
-                (if (r.conflicts > 0) tr("sync.conflicts", r.conflicts) else ""))
+            val status = tr("sync.lastSynced", time, r.pulled, r.pushed) + (if (r.mediaUp + r.mediaDown > 0) tr("sync.images", r.mediaUp + r.mediaDown) else "") +
+                (if (r.conflicts > 0) tr("sync.conflicts", r.conflicts) else "")
+            setStatus(status)
+            endTask(status, dismiss = auto && !r.firstSync && r.pulled == 0 && r.pushed == 0 && r.mediaUp + r.mediaDown == 0)
             if (r.firstSync || r.pulled > 0) notify(tr("sync.result", r.pulled, r.pushed))
             if (r.pulled > 0) enrichSyncedInbox()
             // merge duplicate "Inbox" (created on two devices before the first sync) and pass it on right away
@@ -1410,7 +1464,7 @@ class AppState(
         syncLoop = scope.launch {
             delay(8_000)
             while (true) {
-                if (!syncRunning && !firstSyncChoice) syncNow()
+                if (!syncRunning && !firstSyncChoice) syncNow(auto = true)
                 delay(syncInterval * 60_000L)
             }
         }

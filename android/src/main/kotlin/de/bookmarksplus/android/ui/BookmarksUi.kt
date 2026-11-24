@@ -39,6 +39,9 @@ import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.AlertDialog
@@ -50,6 +53,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -133,6 +137,7 @@ fun BookmarksUi(store: BookmarkStore, accent: Color, onAccent: (Color) -> Unit) 
                 is SyncOutcome.Failed -> snackbar.showSnackbar(r.message)
                 SyncOutcome.NeedsFirstSyncChoice -> firstSyncChoice = true
                 SyncOutcome.NotConfigured -> if (!quiet) showSettings = true
+                is SyncOutcome.Stopped -> snackbar.showSnackbar(r.text)
             }
         }
     }
@@ -206,6 +211,7 @@ fun BookmarksUi(store: BookmarkStore, accent: Color, onAccent: (Color) -> Unit) 
             modifier = Modifier.fillMaxSize().padding(pad),
         ) {
             Column(Modifier.fillMaxSize()) {
+                SyncProgressBar(store)
                 FilterRow(
                     lib, tagIds, onTags = { showTags = true },
                     reposOnly = reposOnly, onRepos = { reposOnly = !reposOnly },
@@ -430,4 +436,35 @@ fun FirstSyncDialog(onChoice: (FirstSyncMode?) -> Unit) {
         confirmButton = { Button(onClick = { onChoice(FirstSyncMode.Merge) }) { Text(str(R.string.first_sync_merge)) } },
         dismissButton = { TextButton(onClick = { onChoice(FirstSyncMode.TakeRemote) }) { Text(str(R.string.first_sync_pull)) } },
     )
+}
+
+/** Sync task: overall progress (bookmarks first, then images) with pause/resume and stop. Hidden while no sync runs. */
+@Composable
+private fun SyncProgressBar(store: BookmarkStore) {
+    val progress by store.syncProgress.collectAsState()
+    val paused by store.syncPaused.collectAsState()
+    val p = progress ?: return
+    Column(Modifier.fillMaxWidth().background(Palette.SurfaceHigh).padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(
+                    if (paused) str(R.string.sync_paused) else store.phaseText(p.phase),
+                    style = MaterialTheme.typography.labelLarge,
+                )
+                Text(
+                    if (p.total > 0) "${p.done} / ${p.total}" else str(R.string.sync_comparing),
+                    style = MaterialTheme.typography.bodySmall, color = Palette.TextMuted,
+                )
+            }
+            IconButton(onClick = { if (paused) store.resumeSync() else store.pauseSync() }) {
+                Icon(
+                    if (paused) Icons.Filled.PlayArrow else Icons.Filled.Pause,
+                    str(if (paused) R.string.sync_resume else R.string.sync_pause),
+                )
+            }
+            IconButton(onClick = { store.stopSync() }) { Icon(Icons.Filled.Stop, str(R.string.sync_stop)) }
+        }
+        if (p.total > 0) LinearProgressIndicator(progress = { (p.done.toFloat() / p.total).coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth().padding(end = 12.dp))
+        else LinearProgressIndicator(modifier = Modifier.fillMaxWidth().padding(end = 12.dp))
+    }
 }
