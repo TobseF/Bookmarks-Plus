@@ -68,6 +68,15 @@ class ScreenshotTest {
         state.treeExpanded = emptySet()
         state.filter = state.filter.copy(text = "blender", added = Period.Any)
         shot("4-tree-filtered")
+        // relevance search with folder hits; then folders only
+        state.changeView(ViewMode.List)
+        state.filter = state.filter.copy(text = "3D")
+        shot("4b-search-list")
+        state.changeView(ViewMode.Cards)
+        shot("4c-search-cards")
+        state.filter = state.filter.copy(scope = de.bookmarksplus.data.SearchScope.Folders)
+        shot("4d-search-folders")
+        state.filter = state.filter.copy(scope = de.bookmarksplus.data.SearchScope.All)
         state.changeView(ViewMode.Cards)
         state.filter = state.filter.copy(text = "", onlyRepos = true)
         state.results.firstOrNull()?.let { state.select(it.id) }

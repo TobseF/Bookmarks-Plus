@@ -69,6 +69,9 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import de.bookmarksplus.data.Period
+import de.bookmarksplus.data.SearchScope
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Folder
 import de.bookmarksplus.data.SortField
 import de.bookmarksplus.desktop.AppState
 import de.bookmarksplus.desktop.ViewMode
@@ -113,6 +116,7 @@ fun TopBar(state: AppState, searchFocus: FocusRequester, onImport: () -> Unit, o
             }
         }
         SearchField(state, searchFocus, Modifier.weight(1f))
+        ScopeToggle(state)
         if (f.isNarrowing && saved == null && !f.trash) IconButton(onClick = {
             state.nameDialog = de.bookmarksplus.desktop.NameRequest(tr("search.save"), f.text.trim(), tr("common.save")) { state.saveSearch(it) }
         }) { Icon(Icons.Filled.BookmarkAdd, tr("search.save"), tint = Palette.TextMuted) }
@@ -234,6 +238,48 @@ private fun SearchField(state: AppState, focus: FocusRequester, modifier: Modifi
     }
 }
 
+/** Icon of a search scope: folder + bookmark, bookmark only, folder only. */
+@Composable
+fun ScopeIcon(scope: SearchScope, tint: Color, size: androidx.compose.ui.unit.Dp = 16.dp) {
+    when (scope) {
+        SearchScope.Bookmarks -> Icon(Icons.Filled.Bookmark, null, Modifier.size(size), tint = tint)
+        SearchScope.Folders -> Icon(Icons.Filled.Folder, null, Modifier.size(size), tint = tint)
+        SearchScope.All -> Box(Modifier.size(size + 4.dp)) {
+            Icon(Icons.Filled.Folder, null, Modifier.size(size * 0.8f).align(Alignment.TopStart), tint = tint)
+            Icon(Icons.Filled.Bookmark, null, Modifier.size(size * 0.7f).align(Alignment.BottomEnd), tint = tint)
+        }
+    }
+}
+
+/** Tri-state toggle next to the search bar: search bookmarks and folders, only bookmarks or only folders. */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+private fun ScopeToggle(state: AppState) {
+    Row(
+        Modifier.height(38.dp).clip(RoundedCornerShape(10.dp)).background(Palette.SurfaceHigh)
+            .border(1.dp, Palette.Outline, RoundedCornerShape(10.dp)).padding(3.dp),
+        horizontalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        SearchScope.entries.forEach { s ->
+            val sel = state.filter.scope == s
+            androidx.compose.foundation.TooltipArea(
+                tooltip = {
+                    Text(tr("search.scopeTip", s.label), fontSize = 12.sp, color = Palette.Text,
+                        modifier = Modifier.clip(RoundedCornerShape(6.dp)).background(Palette.SurfaceHighest).padding(horizontal = 8.dp, vertical = 4.dp))
+                },
+                delayMillis = 400,
+            ) {
+                Box(
+                    Modifier.height(30.dp).width(34.dp).clip(RoundedCornerShape(7.dp))
+                        .background(if (sel) MaterialTheme.colorScheme.primary else Color.Transparent)
+                        .clickable { state.filter = state.filter.copy(scope = s) },
+                    contentAlignment = Alignment.Center,
+                ) { ScopeIcon(s, if (sel) Color.White else Palette.TextMuted) }
+            }
+        }
+    }
+}
+
 @Composable
 private fun ViewSwitcher(state: AppState, compact: Boolean) {
     Row(
@@ -268,22 +314,30 @@ private fun ViewSwitcher(state: AppState, compact: Boolean) {
 private fun SortMenu(state: AppState, compact: Boolean) {
     var open by remember { mutableStateOf(false) }
     val f = state.filter
+    val searching = f.isTextSearch
+    val current = f.effectiveSort
+    val desc = f.effectiveDescending
     Box {
         TextButton(onClick = { open = true }) {
             Icon(Icons.AutoMirrored.Filled.Sort, null, Modifier.size(16.dp), tint = Palette.TextMuted)
             if (!compact) {
                 Spacer(Modifier.width(6.dp))
-                Text(f.sort.label, color = Palette.Text, fontSize = 13.sp)
+                Text(current.label, color = Palette.Text, fontSize = 13.sp)
             }
-            Spacer(Modifier.width(4.dp))
-            Icon(if (f.descending) Icons.Filled.ArrowDownward else Icons.Filled.ArrowUpward, null, Modifier.size(14.dp), tint = Palette.TextMuted)
+            if (current != SortField.Relevance) {
+                Spacer(Modifier.width(4.dp))
+                Icon(if (desc) Icons.Filled.ArrowDownward else Icons.Filled.ArrowUpward, null, Modifier.size(14.dp), tint = Palette.TextMuted)
+            }
         }
         DropdownMenu(open, onDismissRequest = { open = false }) {
-            SortField.entries.forEach { s ->
+            // relevance only while searching, listed first
+            val fields = if (searching) listOf(SortField.Relevance) + SortField.entries.filter { it != SortField.Relevance && it != SortField.Manual }
+                else SortField.entries.filter { it != SortField.Relevance }
+            fields.forEach { s ->
                 DropdownMenuItem(
-                    text = { Text(s.label, color = if (s == f.sort) MaterialTheme.colorScheme.primary else Palette.Text) },
-                    onClick = { state.changeSort(s, if (s == f.sort) !f.descending else s != SortField.Title && s != SortField.Domain && s != SortField.Manual); open = false },
-                    trailingIcon = if (s == f.sort) ({ Icon(if (f.descending) Icons.Filled.ArrowDownward else Icons.Filled.ArrowUpward, null, Modifier.size(14.dp)) }) else null,
+                    text = { Text(s.label, color = if (s == current) MaterialTheme.colorScheme.primary else Palette.Text) },
+                    onClick = { state.changeSort(s, if (s == current) !desc else s != SortField.Title && s != SortField.Domain && s != SortField.Manual); open = false },
+                    trailingIcon = if (s == current && s != SortField.Relevance) ({ Icon(if (desc) Icons.Filled.ArrowDownward else Icons.Filled.ArrowUpward, null, Modifier.size(14.dp)) }) else null,
                 )
             }
         }

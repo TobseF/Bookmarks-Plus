@@ -191,7 +191,7 @@ fun ItemCard(store: BookmarkStore, lib: Library, item: Item, onClick: () -> Unit
 }
 
 @Composable
-fun FolderRow(lib: Library, folder: FolderInfo, onClick: () -> Unit) {
+fun FolderRow(lib: Library, folder: FolderInfo, path: String = "", onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -200,7 +200,10 @@ fun FolderRow(lib: Library, folder: FolderInfo, onClick: () -> Unit) {
             Icon(Icons.Default.Folder, null, tint = MaterialTheme.colorScheme.primary)
         }
         Spacer(Modifier.width(14.dp))
-        Text(folder.title, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        androidx.compose.foundation.layout.Column(Modifier.weight(1f)) {
+            Text(folder.title, style = MaterialTheme.typography.bodyMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (path.isNotEmpty()) Muted(path)
+        }
         Muted((lib.recursiveCounts[folder.id] ?: 0).toString())
         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = Palette.TextFaint)
     }

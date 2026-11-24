@@ -165,6 +165,9 @@ data class Item(
     /** Last activity: most recent of change, last commit and release. */
     val lastActivity: Long? get() = listOfNotNull(lastModified, lastCommit, lastReleaseDate).maxOrNull()
 
+    /** Texts for the relevance ranking, grouped by tier. */
+    internal val searchFields: ItemFields by lazy { ItemFields.of(this) }
+
     internal val haystack: String by lazy {
         buildString {
             append(title.lowercase()).append('\n')
@@ -200,7 +203,12 @@ class Library(
         internal set
 
     fun tagLabel(name: String): String = tagLabels[name.lowercase()] ?: name
+
+    /** Language the snapshot was loaded in; the search prefers texts in this language. */
+    var contentLang: ContentLang = ContentLang.DE
+        internal set
     val trashPlacementsByItem: Map<Long, List<PlacementInfo>> = trashPlacements.groupBy { it.bookmarkId }
+    private val trashPlacementList = trashPlacements
 
     /** Active bookmark or one from the trash. */
     fun anyItem(id: Long): Item? = itemsById[id] ?: trashById[id]
@@ -250,6 +258,34 @@ class Library(
         val fid = folderByPath(path) ?: return path
         return path.takeIf { placementsByItem[item.id].orEmpty().none { it.folderId == fid } }
     }
+
+    /** Folder name (weight 1) followed by its ancestors (weight [Relevance.ANCESTOR]), for the search. */
+    private val folderChains: Map<Long, List<Field>> by lazy {
+        this.folders.keys.filter { it != rootId }.associateWith { fid ->
+            path(fid).asReversed().mapIndexed { i, f -> Field(f.title, weight = if (i == 0) 1.0 else Relevance.ANCESTOR) }
+        }
+    }
+
+    internal fun folderChainFields(folderId: Long): List<Field> = folderChains[folderId].orEmpty()
+
+    /** Tag label in the display language and the canonical name. */
+    private val tagFieldMap: Map<Long, List<Field>> by lazy {
+        tags.associate { t ->
+            t.id to buildList {
+                add(Field(t.label))
+                if (!t.name.equals(t.label, ignoreCase = true)) add(Field(t.name, weight = 0.9))
+            }
+        }
+    }
+
+    internal fun tagFields(tagId: Long): List<Field> = tagFieldMap[tagId].orEmpty()
+
+    /** Own titles of placements (a bookmark can be named differently per folder). */
+    private val placementTitles: Map<Long, List<Field>> by lazy {
+        (placements + trashPlacementList).filter { !it.title.isNullOrBlank() }.associate { it.id to listOf(Field(it.title!!)) }
+    }
+
+    internal fun placementTitleField(placementId: Long, title: String): List<Field> = placementTitles[placementId] ?: listOf(Field(title))
 
     /** Groups of the same normalized URL (active bookmarks only), oldest first. */
     val duplicateGroups: Map<String, List<Item>> by lazy {
@@ -359,6 +395,7 @@ class Library(
             val tagsOf = db.tagQueries.allBookmarkTags().executeAsList()
                 .groupBy({ it.bookmark_id }, { it.tag_id }).mapValues { it.value.toSet() }
             return Library(root?.id, folders, items, placements, tags, tagsOf, trash.sortedByDescending { it.deletedAt }, trashPlacements)
+                .also { lib -> lib.contentLang = lang }
                 .also { lib -> lib.tagLabels = i18n.mapValues { (k, v) -> (if (lang == ContentLang.EN) v.second ?: v.first else v.first ?: v.second) ?: k } }
         }
     }

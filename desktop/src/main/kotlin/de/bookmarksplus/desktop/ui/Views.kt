@@ -44,6 +44,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material3.Icon
+import de.bookmarksplus.data.FolderHit
+import de.bookmarksplus.data.SearchScope
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -180,10 +182,12 @@ private fun rowBackground(selected: Boolean, hovered: Boolean): Color = when {
 @Composable
 fun ListView(state: AppState) {
     val items = state.results
-    if (items.isEmpty()) return EmptyState(tr("list.noneFound"))
+    val folders = state.folderResults
+    if (items.isEmpty() && folders.isEmpty()) return EmptyState(emptyText(state))
     val listState = rememberLazyListState()
     LaunchedEffect(state.filter) { listState.scrollToItem(0) }
     val ids = remember(items) { items.map { it.id } }
+    var showAll by remember(folders) { androidx.compose.runtime.mutableStateOf(false) }
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 28.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(tr("list.titleHeader"), style = SectionLabel, modifier = Modifier.weight(1f).padding(start = 26.dp))
@@ -194,6 +198,7 @@ fun ListView(state: AppState) {
         }
         Box(Modifier.fillMaxSize()) {
             LazyColumn(Modifier.fillMaxSize().padding(end = 8.dp), listState, contentPadding = PaddingValues(start = 12.dp, end = 8.dp, bottom = 24.dp)) {
+                folderBlock(state, folders, showAll, onToggle = { showAll = !showAll }, divider = items.isNotEmpty())
                 items(items, key = { it.id }) { item -> ListRow(state, item) { ids } }
             }
             VerticalScrollbar(rememberScrollbarAdapter(listState), Modifier.align(Alignment.CenterEnd).fillMaxHeight())
@@ -237,12 +242,15 @@ private fun ListRow(state: AppState, item: Item, ordered: () -> List<Long>) {
 // ---------------------------------------------------------------- Tree
 
 private sealed interface TreeRow {
-    data class F(val id: Long, val title: String, val depth: Int, val count: Int, val open: Boolean) : TreeRow
+    data class F(val id: Long, val title: String, val depth: Int, val count: Int, val open: Boolean, val hit: Boolean = false) : TreeRow
     data class B(val item: Item, val depth: Int, val placementId: Long, val title: String) : TreeRow
 }
 
-private fun buildTree(lib: Library, rootId: Long, visible: Set<Long>, narrowing: Boolean, expanded: Set<Long>): List<TreeRow> {
+private fun buildTree(lib: Library, rootId: Long, visible: Set<Long>, narrowing: Boolean, expanded: Set<Long>, folderHits: Set<Long> = emptySet()): List<TreeRow> {
     val rows = ArrayList<TreeRow>()
+    // folders found by the search stay visible (with their ancestors) even without matching bookmarks
+    val hitPath = HashMap<Long, Boolean>()
+    fun containsHit(id: Long): Boolean = hitPath.getOrPut(id) { id in folderHits || lib.childrenOf(id).any { containsHit(it.id) } }
     // number of matching entries per folder (recursive), to hide empty folders when filtering
     val matchCount = HashMap<Long, Int>()
     fun count(id: Long): Int = matchCount.getOrPut(id) {
@@ -255,9 +263,9 @@ private fun buildTree(lib: Library, rootId: Long, visible: Set<Long>, narrowing:
             when (e) {
                 is de.bookmarksplus.data.FolderInfo -> {
                     val n = count(e.id)
-                    if (narrowing && n == 0) return@forEach
+                    if (narrowing && n == 0 && !containsHit(e.id)) return@forEach
                     val open = if (narrowing) e.id !in expanded else e.id in expanded // open by default when filtering
-                    rows += TreeRow.F(e.id, e.title, depth, n, open)
+                    rows += TreeRow.F(e.id, e.title, depth, n, open, hit = e.id in folderHits)
                     if (open) walk(e.id, depth + 1)
                 }
                 is de.bookmarksplus.data.PlacementInfo -> {
@@ -279,8 +287,9 @@ fun TreeView(state: AppState) {
     val visible = state.resultIds
     val narrowing = state.filter.isNarrowing
     val expanded = state.treeExpanded
-    val rows = remember(lib, root, visible, narrowing, expanded) { buildTree(lib, root, visible, narrowing, expanded) }
-    if (rows.isEmpty()) return EmptyState(tr("list.noneFound"))
+    val folderHits = remember(state.folderResults) { state.folderResults.mapTo(HashSet()) { it.folder.id } }
+    val rows = remember(lib, root, visible, narrowing, expanded, folderHits) { buildTree(lib, root, visible, narrowing, expanded, folderHits) }
+    if (rows.isEmpty()) return EmptyState(emptyText(state))
     val ids = remember(rows) { rows.filterIsInstance<TreeRow.B>().map { it.item.id } }
     val listState = rememberLazyListState()
     // bookmark to scroll to after expanding
@@ -324,8 +333,10 @@ fun TreeView(state: AppState) {
                         ) {
                             Icon(if (r.open) Icons.Filled.ExpandMore else Icons.Filled.ChevronRight, null, Modifier.size(16.dp), tint = Palette.TextFaint)
                             Icon(if (r.open) Icons.Outlined.Folder else Icons.Filled.Folder, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f))
-                            Text(r.title, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                            Text(r.title, fontSize = 13.sp, fontWeight = if (r.hit) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false),
+                                color = if (r.hit) MaterialTheme.colorScheme.primary else Palette.Text)
                             Text("${r.count}", fontSize = 11.sp, color = Palette.TextFaint)
+                            if (r.hit) Icon(Icons.Filled.ChevronRight, tr("search.openFolder"), Modifier.size(16.dp).clip(RoundedCornerShape(4.dp)).clickable { state.openFolder(r.id) }, tint = MaterialTheme.colorScheme.primary)
                         }
                     }
                     is TreeRow.B -> {
@@ -366,7 +377,9 @@ fun TreeView(state: AppState) {
 @Composable
 fun CardsView(state: AppState) {
     val items = state.results
-    if (items.isEmpty()) return EmptyState(tr("list.noneFound"))
+    val folders = state.folderResults
+    if (items.isEmpty() && folders.isEmpty()) return EmptyState(emptyText(state))
+    var showAll by remember(folders) { androidx.compose.runtime.mutableStateOf(false) }
     val gridState = rememberLazyGridState()
     LaunchedEffect(state.filter) { gridState.scrollToItem(0) }
     val ids = remember(items) { items.map { it.id } }
@@ -377,6 +390,16 @@ fun CardsView(state: AppState) {
             horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
+            if (folders.isNotEmpty()) {
+                val shown = if (showAll || state.filter.scope == SearchScope.Folders) folders else folders.take(FOLDER_PREVIEW)
+                item(key = "folders", span = { androidx.compose.foundation.lazy.grid.GridItemSpan(maxLineSpan) }) {
+                    Column {
+                        FolderHeader(folders.size)
+                        shown.forEach { FolderHitRow(state, it) }
+                        if (folders.size > FOLDER_PREVIEW && state.filter.scope != SearchScope.Folders) MoreFolders(folders.size, showAll) { showAll = !showAll }
+                    }
+                }
+            }
             items(items, key = { it.id }) { item -> Card(state, item) { ids } }
         }
         VerticalScrollbar(rememberScrollbarAdapter(gridState), Modifier.align(Alignment.CenterEnd).fillMaxHeight())
@@ -425,6 +448,62 @@ private fun Card(state: AppState, item: Item, ordered: () -> List<Long>) {
                     Text(formatRelative(item.addDate), fontSize = 11.sp, color = Palette.TextFaint)
                 }
             }
+        }
+    }
+}
+
+// ---------------------------------------------------------------- Folder hits
+
+/** Folder hits shown before the list is expanded. */
+private const val FOLDER_PREVIEW = 5
+
+private fun emptyText(state: AppState): String = when {
+    state.filter.isTextSearch && state.filter.scope == SearchScope.Folders -> tr("search.noFolders")
+    state.filter.scope == SearchScope.Folders && !state.filter.isNarrowing -> tr("search.typeForFolders")
+    else -> tr("list.noneFound")
+}
+
+private fun androidx.compose.foundation.lazy.LazyListScope.folderBlock(
+    state: AppState, folders: List<FolderHit>, showAll: Boolean, onToggle: () -> Unit, divider: Boolean,
+) {
+    if (folders.isEmpty()) return
+    val all = showAll || state.filter.scope == SearchScope.Folders
+    item(key = "folders-header") { FolderHeader(folders.size) }
+    items(if (all) folders else folders.take(FOLDER_PREVIEW), key = { "folder-${it.folder.id}" }) { FolderHitRow(state, it) }
+    if (folders.size > FOLDER_PREVIEW && state.filter.scope != SearchScope.Folders) item(key = "folders-more") { MoreFolders(folders.size, showAll, onToggle) }
+    if (divider) item(key = "folders-divider") { Spacer(Modifier.height(10.dp)) }
+}
+
+@Composable
+private fun FolderHeader(count: Int) {
+    Text(tr("search.foldersHeader", count), style = SectionLabel, modifier = Modifier.padding(start = 16.dp, top = 4.dp, bottom = 4.dp))
+}
+
+@Composable
+private fun MoreFolders(count: Int, showAll: Boolean, onClick: () -> Unit) {
+    Text(
+        if (showAll) tr("search.fewerFolders") else tr("search.moreFolders", count),
+        fontSize = 12.sp, color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier.padding(start = 8.dp).clip(RoundedCornerShape(6.dp)).clickable(onClick = onClick).padding(horizontal = 8.dp, vertical = 6.dp),
+    )
+}
+
+@Composable
+private fun FolderHitRow(state: AppState, hit: FolderHit) {
+    val (src, hovered) = rememberHover()
+    FolderContextMenu(state, hit.folder.id) {
+        Row(
+            Modifier.fillMaxWidth().height(36.dp).clip(RoundedCornerShape(8.dp))
+                .background(if (hovered) Palette.SurfaceHigh else Color.Transparent).hover(src)
+                .clickable { state.openFolder(hit.folder.id) }.padding(horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            Icon(Icons.Filled.Folder, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.85f))
+            Text(hit.folder.title, fontSize = 13.sp, fontWeight = FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Muted(hit.parentPath, Modifier.weight(1f))
+            Text("${state.library.recursiveCounts[hit.folder.id] ?: 0}", fontSize = 11.sp, color = Palette.TextFaint)
+            Icon(Icons.Filled.ChevronRight, null, Modifier.size(16.dp), tint = Palette.TextFaint)
         }
     }
 }

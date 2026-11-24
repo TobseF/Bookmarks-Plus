@@ -164,7 +164,7 @@ class AppState(
     var readmeDialogId by mutableStateOf<Long?>(null)
     var showSettings by mutableStateOf(false)
 
-    private var ftsCache: Pair<String, Set<Long>> = "" to emptySet()
+    private var ftsCache: Pair<String, Map<String, Set<Long>>> = "" to emptyMap()
 
     // ------------------------------------------------------------ Enrichment
     internal val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
@@ -339,9 +339,14 @@ class AppState(
         private set
     val pendingCount: Int by derivedStateOf { library.items.count { it.scrapedAt == null } }
 
-    val results: List<Item> by derivedStateOf {
-        FilterEngine.apply(library, filter, System.currentTimeMillis() / 1000, ftsHits(filter.text))
+    /** Bookmarks and – for a free-text search – folders, ranked by relevance. */
+    val searchResult: de.bookmarksplus.data.SearchResult by derivedStateOf {
+        FilterEngine.search(library, filter, System.currentTimeMillis() / 1000, ftsHits(filter.text))
     }
+
+    val results: List<Item> by derivedStateOf { searchResult.items }
+
+    val folderResults: List<de.bookmarksplus.data.FolderHit> by derivedStateOf { searchResult.folders }
 
     val resultIds: Set<Long> by derivedStateOf { results.mapTo(HashSet()) { it.id } }
 
@@ -752,7 +757,7 @@ class AppState(
         library = Library.load(db, contentLang)
         iconBytes.clear()
         db.bookmarkQueries.allIcons().executeAsList().forEach { iconBytes[it.hash] = it.data_ }
-        ftsCache = "" to emptySet()
+        ftsCache = "" to emptyMap()
         selection = selection.filterTo(HashSet()) { it in library.itemsById || it in library.trashById }
         if (editingId != null && editingId !in selection) editingId = null
         // expand top level (Vivaldi/Chrome put everything into one root folder like "Bookmarks")
@@ -763,10 +768,10 @@ class AppState(
         }
     }
 
-    private fun ftsHits(text: String): Set<Long> {
+    private fun ftsHits(text: String): Map<String, Set<Long>> {
         if (ftsCache.first == text) return ftsCache.second
         val terms = ParsedQuery.parse(text).terms
-        val hits = if (terms.isEmpty()) emptySet() else index.search(terms)
+        val hits = if (terms.isEmpty()) emptyMap() else index.searchEach(terms)
         ftsCache = text to hits
         return hits
     }
@@ -866,13 +871,22 @@ class AppState(
     }
 
     fun changeSort(field: SortField, descending: Boolean) {
+        // while searching, the search order changes (not stored, relevance is the default)
+        if (filter.isTextSearch) { filter = filter.copy(searchSort = field, searchDescending = descending); return }
         filter = filter.copy(sort = field, descending = descending)
         settings.put("sort", field.name)
         settings.put("sortDesc", descending.toString())
     }
 
     fun resetFilters() {
-        filter = Filter(folderId = filter.folderId, includeSubfolders = filter.includeSubfolders, sort = filter.sort, descending = filter.descending)
+        filter = Filter(folderId = filter.folderId, includeSubfolders = filter.includeSubfolders, sort = filter.sort, descending = filter.descending, scope = filter.scope)
+    }
+
+    /** Opens a folder found by the search (search text is cleared, sidebar shows the folder). */
+    fun openFolder(folderId: Long) {
+        val ancestors = generateSequence(library.folders[folderId]?.parentId) { library.folders[it]?.parentId }.toSet()
+        sidebarExpanded = sidebarExpanded + ancestors
+        filter = filter.copy(folderId = folderId, text = "", trash = false)
     }
 
     // ------------------------------------------------------------ Tags
@@ -1800,13 +1814,15 @@ class AppState(
     override fun search(query: String, limit: Int, folderId: Long?, sort: String?): List<de.bookmarksplus.desktop.api.ApiItem> {
         val lib = library
         val terms = ParsedQuery.parse(query).terms
-        val hits = if (terms.isEmpty()) emptySet() else index.search(terms)
+        val hits = if (terms.isEmpty()) emptyMap() else index.searchEach(terms)
         val field = sort?.let { s -> SortField.entries.firstOrNull { it.name.equals(s, ignoreCase = true) } }
         val filter = Filter(
             text = query,
             folderId = folderId?.takeIf { it in lib.folders },
-            sort = field ?: SortField.Added,
+            sort = field?.takeIf { it != SortField.Relevance } ?: SortField.Added,
             descending = field != SortField.Title && field != SortField.Domain,
+            searchSort = field ?: SortField.Relevance,
+            searchDescending = field != SortField.Title && field != SortField.Domain,
         )
         return FilterEngine.apply(lib, filter, System.currentTimeMillis() / 1000, hits).take(limit).map { apiItem(lib, it) }
     }

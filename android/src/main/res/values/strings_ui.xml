@@ -42,6 +42,9 @@
     <string name="search_hint">Search</string>
     <string name="search_no_hits">No results for “%1$s”</string>
     <string name="search_nothing">Nothing found</string>
+    <string name="search_scope">Search in: %1$s</string>
+    <string name="search_more_folders">Show all %1$d folders</string>
+    <string name="search_fewer_folders">Show fewer folders</string>
     <string name="settings_about">About</string>
     <string name="settings_about_text1">"Enrichment, preview images and AI run in the desktop app. On the phone: view, search, open in the browser "</string>
     <string name="settings_about_text2">and collect links via “Share → Save to Inbox”.</string>

@@ -42,6 +42,9 @@
     <string name="search_hint">Suchen</string>
     <string name="search_no_hits">Keine Treffer für „%1$s“</string>
     <string name="search_nothing">Nichts gefunden</string>
+    <string name="search_scope">Suchen in: %1$s</string>
+    <string name="search_more_folders">Alle %1$d Ordner anzeigen</string>
+    <string name="search_fewer_folders">Weniger Ordner anzeigen</string>
     <string name="settings_about">Über</string>
     <string name="settings_about_text1">"Anreichern, Vorschaubilder und KI laufen in der Desktop-App. Auf dem Handy: ansehen, suchen, im Browser öffnen "</string>
     <string name="settings_about_text2">und Links über „Teilen → In Inbox speichern“ sammeln.</string>

@@ -3,7 +3,9 @@ package de.bookmarksplus.data
 import de.bookmarksplus.i18n.tr
 
 enum class SortField {
-    Manual, Added, Modified, Title, Domain, Stars, LastCommit;
+    Manual, Added, Modified, Title, Domain, Stars, LastCommit,
+    /** Best hits first; only while searching for free text (otherwise like [Added]). */
+    Relevance;
 
     val label: String get() = tr("sort.${name.replaceFirstChar { it.lowercase() }}")
 }
@@ -50,7 +52,18 @@ data class Filter(
     val trash: Boolean = false,
     val sort: SortField = SortField.Added,
     val descending: Boolean = true,
+    /** Sort order while free text is searched (separate, so that searching does not change the browse order). */
+    val searchSort: SortField = SortField.Relevance,
+    val searchDescending: Boolean = true,
+    /** Free-text search returns bookmarks, folders or both. */
+    val scope: SearchScope = SearchScope.All,
 ) {
+    /** Free-text terms present → [searchSort] applies and folders are searched as well. */
+    val isTextSearch: Boolean get() = ParsedQuery.parse(text).terms.isNotEmpty()
+
+    val effectiveSort: SortField get() = if (isTextSearch) searchSort else sort
+    val effectiveDescending: Boolean get() = if (isTextSearch) searchDescending else descending
+
     val isNarrowing: Boolean
         get() = text.isNotBlank() || tagIds.isNotEmpty() || domain != null || minStars != null ||
             added != Period.Any || updated != Period.Any || onlyRepos || onlyDead || onlySuggested || onlyRedirects || onlyDuplicates || onlyBlocked || onlyNoThumbnail
@@ -65,7 +78,10 @@ data class Filter(
  * `has:flathub`, `has:alternativeto`, `has:winget|choco|scoop|brew|npm`, `license:gpl`.
  */
 data class ParsedQuery(
+    /** Free-text terms in lower case. */
     val terms: List<String> = emptyList(),
+    /** The same terms as typed (case matters for the ranking). */
+    val rawTerms: List<String> = emptyList(),
     val excluded: List<String> = emptyList(),
     val tags: List<String> = emptyList(),
     val domain: String? = null,
@@ -91,6 +107,7 @@ data class ParsedQuery(
         fun parse(text: String): ParsedQuery {
             var q = ParsedQuery()
             val terms = ArrayList<String>()
+            val rawTerms = ArrayList<String>()
             val excluded = ArrayList<String>()
             val tags = ArrayList<String>()
             for (raw in text.trim().split(Regex("\\s+"))) {
@@ -128,10 +145,10 @@ data class ParsedQuery(
                     lower.startsWith("has:") && lower.length > 4 -> q = q.copy(has = q.has + lower.substringAfter(':'))
                     lower.startsWith("license:") && lower.length > 8 -> q = q.copy(license = lower.substringAfter(':'))
                     lower.startsWith("-") && lower.length > 1 -> excluded += lower.substring(1)
-                    else -> terms += lower
+                    else -> { terms += lower; rawTerms += raw }
                 }
             }
-            return q.copy(terms = terms, excluded = excluded, tags = tags)
+            return q.copy(terms = terms, rawTerms = rawTerms, excluded = excluded, tags = tags)
         }
 
         /** `1k` / `2.5k` / `1200`. */
@@ -148,13 +165,26 @@ data class ParsedQuery(
 
 object FilterEngine {
 
+    /** Bookmarks only (see [search]). */
+    fun apply(lib: Library, f: Filter, now: Long, ftsHits: Map<String, Set<Long>> = emptyMap()): List<Item> =
+        search(lib, f, now, ftsHits, withFolders = false).items
+
     /**
-     * Applies the filter. `ftsHits` are the hits of the full-text index (README, summary …) for the
-     * free-text terms; a bookmark matches if all terms occur in title/URL/description
-     * OR it was found in the full-text index.
+     * Applies the filter. `ftsHits` are the hits of the full-text index (README, page text …) per
+     * lowercase free-text term. Every term must occur somewhere: title, folder path, tag, other field
+     * or full text. With free text the hits are ranked by [Relevance] (unless another sort order was chosen)
+     * and – depending on [Filter.scope] – matching folders are returned as well.
+     * Every bookmark and folder occurs at most once.
      */
-    fun apply(lib: Library, f: Filter, now: Long, ftsHits: Set<Long> = emptySet()): List<Item> {
+    fun search(lib: Library, f: Filter, now: Long, ftsHits: Map<String, Set<Long>> = emptyMap(), withFolders: Boolean = true): SearchResult {
         val q = ParsedQuery.parse(f.text)
+        val textSearch = q.terms.isNotEmpty()
+        val scorer = if (textSearch) Scorer(lib, q.rawTerms.map(::Term), q.excluded, ftsHits) else null
+        // folders: only for plain text (operators and filter chips concern bookmarks)
+        val plainText = q == ParsedQuery(terms = q.terms, rawTerms = q.rawTerms, excluded = q.excluded) &&
+            !f.copy(text = "", folderId = null).isNarrowing && !f.trash
+        val folders = if (scorer != null && withFolders && plainText && f.scope.includesFolders) scorer.folders(f.folderId) else emptyList()
+        if (textSearch && !f.scope.includesBookmarks) return SearchResult(emptyList(), folders)
         val folderScope: Set<Long>? = f.folderId?.takeIf { !f.trash }?.let { if (f.includeSubfolders) lib.descendants(it) else setOf(it) }
         val inScope: Set<Long>? = folderScope?.let { scope ->
             val ids = HashSet<Long>()
@@ -169,7 +199,8 @@ object FilterEngine {
         val domain = q.domain ?: f.domain
         val minStars = listOfNotNull(q.minStars, f.minStars).maxOrNull()
 
-        if (unknownTagInText) return emptyList()
+        if (unknownTagInText) return SearchResult(emptyList(), folders)
+        val scores = HashMap<Long, Double>()
 
         val result = (if (f.trash) lib.trash else lib.items).filter { item ->
             if (inScope != null && item.id !in inScope) return@filter false
@@ -195,12 +226,22 @@ object FilterEngine {
             if (!f.updated.matches(item.lastActivity, now)) return@filter false
             if (q.addedYear != null && item.addDate?.let { yearOf(it) } != q.addedYear) return@filter false
             if (q.excluded.any { it in item.haystack }) return@filter false
-            if (q.terms.isNotEmpty() && !(q.terms.all { it in item.haystack } || item.id in ftsHits)) return@filter false
+            if (scorer != null) {
+                val s = scorer.score(item)
+                if (s <= 0.0) return@filter false
+                scores[item.id] = s
+            }
             true
         }
+        val field = if (textSearch) f.searchSort else f.sort
+        val desc = if (textSearch) f.searchDescending else f.descending
+        val sorted = if (textSearch && field == SortField.Relevance) {
+            // best first; equal scores: newest first
+            result.sortedWith(compareByDescending<Item> { scores[it.id] ?: 0.0 }.thenByDescending { it.addDate ?: 0 }.thenBy { it.id })
+        } else sort(lib, result, field, desc)
         // Duplicates are grouped together
-        if (f.onlyDuplicates || q.isDuplicate) return sort(lib, result, f.sort, f.descending).sortedBy { it.urlNorm }
-        return sort(lib, result, f.sort, f.descending)
+        if (f.onlyDuplicates || q.isDuplicate) return SearchResult(sorted.sortedBy { it.urlNorm }, folders)
+        return SearchResult(sorted, folders)
     }
 
     fun sort(lib: Library, items: List<Item>, field: SortField, descending: Boolean): List<Item> {
@@ -218,7 +259,7 @@ object FilterEngine {
                 lib.rootId?.let(::walk)
                 return items.sortedBy { order[it.id] ?: Int.MAX_VALUE }.let { if (descending) it.asReversed() else it }
             }
-            SortField.Added -> compareBy(nullsFirst()) { it.addDate }
+            SortField.Added, SortField.Relevance -> compareBy(nullsFirst()) { it.addDate }
             SortField.Modified -> compareBy(nullsFirst()) { it.lastActivity }
             SortField.Title -> compareBy(String.CASE_INSENSITIVE_ORDER) { it.displayTitle }
             SortField.Domain -> compareBy(nullsLast()) { it.domain }

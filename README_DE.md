@@ -49,6 +49,7 @@ Browser-Lesezeichen stoßen schnell an Grenzen: keine Vorschau, keine Tags, trä
 
 ### 🔍 Finden
 - Suche in **Millisekunden** über Titel, URL, Beschreibung und **Volltext** (README, Seitentext, Zusammenfassung)
+- **Relevanz-Sortierung:** Titel vor Ordnerpfad vor Tags vor sonstigen Feldern; ganze Wörter, passende Groß-/Kleinschreibung und die Anzeigesprache zuerst. Findet auch **Ordner** (Umschalter: beides, Lesezeichen, Ordner)
 - **Operatoren:** `#tag` `domain:github.com` `stars:>1k` `added:2024` `is:repo` `is:dead` `-wort` …
 - Filter nach Erstellt, Aktualisiert, Stars, Domain und Tags
 

@@ -55,6 +55,10 @@ class SearchIndex(private val driver: SqlDriver) {
         }.getOrDefault(emptySet())
     }
 
+    /** Full-text hits per (lowercase) term, so that terms may match in different places (title, README …). */
+    fun searchEach(terms: List<String>, limit: Int = 5000): Map<String, Set<Long>> =
+        terms.map { it.lowercase() }.distinct().associateWith { search(listOf(it), limit) }
+
     companion object {
         private const val SELECT = "SELECT id, coalesce(title, '') || ' ' || coalesce(meta_title, ''), ai_title, " +
             "coalesce(description, '') || ' ' || coalesce(meta_description, ''), summary, url, " +

@@ -32,7 +32,11 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Bookmarks
+import de.bookmarksplus.data.FolderHit
+import de.bookmarksplus.data.SearchResult
+import de.bookmarksplus.data.SearchScope
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
@@ -124,6 +128,10 @@ fun BookmarksUi(store: BookmarkStore, accent: Color, onAccent: (Color) -> Unit) 
     var reposOnly by rememberSaveable { mutableStateOf(false) }
     var sort by rememberSaveable { mutableStateOf(SortField.Added) }
     var descending by rememberSaveable { mutableStateOf(true) }
+    // separate order while searching (relevance by default) and what the search returns
+    var searchSort by rememberSaveable { mutableStateOf(SortField.Relevance) }
+    var searchDescending by rememberSaveable { mutableStateOf(true) }
+    var searchScope by rememberSaveable { mutableStateOf(SearchScope.All) }
     var cards by remember { mutableStateOf(store.cardView) }
     var showSettings by rememberSaveable { mutableStateOf(false) }
     var showTags by remember { mutableStateOf(false) }
@@ -171,16 +179,32 @@ fun BookmarksUi(store: BookmarkStore, accent: Color, onAccent: (Color) -> Unit) 
         onlyRepos = reposOnly,
         sort = if (browsing) SortField.Manual else sort,
         descending = if (browsing) false else descending,
+        searchSort = searchSort,
+        searchDescending = searchDescending,
+        scope = searchScope,
     )
-    val items by produceState(emptyList<Item>(), lib, filter) {
-        value = withContext(Dispatchers.Default) { if (filter.folderId == -1L) emptyList() else store.search(lib, filter) }
+    val searching = filter.isTextSearch
+    val result by produceState(SearchResult.EMPTY, lib, filter) {
+        value = withContext(Dispatchers.Default) { if (filter.folderId == -1L) SearchResult.EMPTY else store.search(lib, filter) }
     }
-    val subFolders = if (browsing && currentFolder != null) lib.childrenOf(currentFolder) else emptyList()
+    val items = result.items
+    val subFolders = if (browsing && currentFolder != null) lib.childrenOf(currentFolder).map { FolderHit(it, "", 0.0) } else result.folders
+    // folder from the search results or the folder list: show it in the folder tab
+    fun openFolder(id: Long) {
+        folderPath = lib.path(id).map { it.id }
+        tab = Tab.Folders
+        query = ""
+    }
 
     Scaffold(
         topBar = {
             SearchBarRow(
                 query = query, onQuery = { query = it },
+                searchScope = searchScope, onScope = {
+                    searchScope = searchScope.next()
+                    val label = searchScope.label
+                    scope.launch { snackbar.currentSnackbarData?.dismiss(); snackbar.showSnackbar(str(R.string.search_scope, label)) }
+                },
                 cards = cards, onToggleView = { cards = !cards; store.cardView = cards },
                 onSettings = { showSettings = true },
             )
@@ -215,8 +239,13 @@ fun BookmarksUi(store: BookmarkStore, accent: Color, onAccent: (Color) -> Unit) 
                 FilterRow(
                     lib, tagIds, onTags = { showTags = true },
                     reposOnly = reposOnly, onRepos = { reposOnly = !reposOnly },
-                    sort = sort, descending = descending, sortEnabled = !browsing,
-                    onSort = { f -> if (f == sort) descending = !descending else { sort = f; descending = f != SortField.Title && f != SortField.Domain } },
+                    sort = if (searching) searchSort else sort, descending = if (searching) searchDescending else descending,
+                    sortEnabled = !browsing, searching = searching,
+                    onSort = { f ->
+                        if (searching) {
+                            if (f == searchSort) searchDescending = !searchDescending else { searchSort = f; searchDescending = f != SortField.Title && f != SortField.Domain }
+                        } else if (f == sort) descending = !descending else { sort = f; descending = f != SortField.Title && f != SortField.Domain }
+                    },
                     count = items.size,
                 )
                 if (tab == Tab.Folders && currentFolder != null) {
@@ -234,8 +263,8 @@ fun BookmarksUi(store: BookmarkStore, accent: Color, onAccent: (Color) -> Unit) 
                         str(R.string.inbox_empty_text),
                     )
                     items.isEmpty() && subFolders.isEmpty() -> EmptyState(str(R.string.search_nothing), if (query.isNotBlank()) str(R.string.search_no_hits, query) else str(R.string.folder_empty))
-                    cards -> CardGrid(store, lib, subFolders, items, onFolder = { folderPath = folderPath + it }, onItem = { detailId = it.id })
-                    else -> ItemList(store, lib, subFolders, items, onFolder = { folderPath = folderPath + it }, onItem = { detailId = it.id }, onOpen = { openUrl(context, it.url) })
+                    cards -> CardGrid(store, lib, subFolders, items, limitFolders = searching && searchScope == SearchScope.All, onFolder = ::openFolder, onItem = { detailId = it.id })
+                    else -> ItemList(store, lib, subFolders, items, limitFolders = searching && searchScope == SearchScope.All, onFolder = ::openFolder, onItem = { detailId = it.id }, onOpen = { openUrl(context, it.url) })
                 }
             }
         }
@@ -247,7 +276,10 @@ fun BookmarksUi(store: BookmarkStore, accent: Color, onAccent: (Color) -> Unit) 
 }
 
 @Composable
-private fun SearchBarRow(query: String, onQuery: (String) -> Unit, cards: Boolean, onToggleView: () -> Unit, onSettings: () -> Unit) {
+private fun SearchBarRow(
+    query: String, onQuery: (String) -> Unit, searchScope: SearchScope, onScope: () -> Unit,
+    cards: Boolean, onToggleView: () -> Unit, onSettings: () -> Unit,
+) {
     val focus = LocalFocusManager.current
     Row(
         Modifier.fillMaxWidth().background(Palette.Background).statusBarsPadding()
@@ -269,6 +301,8 @@ private fun SearchBarRow(query: String, onQuery: (String) -> Unit, cards: Boolea
             keyboardActions = androidx.compose.foundation.text.KeyboardActions(onSearch = { focus.clearFocus() }),
             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(imeAction = androidx.compose.ui.text.input.ImeAction.Search),
         )
+        // tri-state toggle: bookmarks + folders → bookmarks → folders
+        IconButton(onClick = onScope) { ScopeIcon(searchScope, str(R.string.search_scope, searchScope.label)) }
         IconButton(onClick = onToggleView) {
             Icon(if (cards) Icons.AutoMirrored.Filled.ViewList else Icons.Default.GridView, if (cards) str(R.string.view_list) else str(R.string.view_cards))
         }
@@ -280,7 +314,7 @@ private fun SearchBarRow(query: String, onQuery: (String) -> Unit, cards: Boolea
 private fun FilterRow(
     lib: Library, tagIds: Set<Long>, onTags: () -> Unit,
     reposOnly: Boolean, onRepos: () -> Unit,
-    sort: SortField, descending: Boolean, sortEnabled: Boolean, onSort: (SortField) -> Unit,
+    sort: SortField, descending: Boolean, sortEnabled: Boolean, searching: Boolean, onSort: (SortField) -> Unit,
     count: Int,
 ) {
     var sortMenu by remember { mutableStateOf(false) }
@@ -296,14 +330,14 @@ private fun FilterRow(
                     selected = false, enabled = sortEnabled, onClick = { sortMenu = true },
                     label = { Text(if (sortEnabled) sort.label else str(R.string.sort_manual)) },
                     leadingIcon = { Icon(Icons.AutoMirrored.Filled.Sort, null, Modifier.size(18.dp)) },
-                    trailingIcon = if (sortEnabled) ({ Icon(if (descending) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward, null, Modifier.size(16.dp)) }) else null,
+                    trailingIcon = if (sortEnabled && sort != SortField.Relevance) ({ Icon(if (descending) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward, null, Modifier.size(16.dp)) }) else null,
                 )
                 DropdownMenu(sortMenu, onDismissRequest = { sortMenu = false }) {
-                    SORTS.forEach { f ->
+                    (if (searching) listOf(SortField.Relevance) + SORTS else SORTS).forEach { f ->
                         DropdownMenuItem(
                             text = { Text(f.label) },
                             onClick = { onSort(f); sortMenu = false },
-                            trailingIcon = if (f == sort) ({ Icon(if (descending) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward, null) }) else null,
+                            trailingIcon = if (f == sort && f != SortField.Relevance) ({ Icon(if (descending) Icons.Default.ArrowDownward else Icons.Default.ArrowUpward, null) }) else null,
                         )
                     }
                 }
@@ -357,11 +391,14 @@ private fun Breadcrumb(lib: Library, folderId: Long, onNavigate: (Long) -> Unit)
 
 @Composable
 private fun ItemList(
-    store: BookmarkStore, lib: Library, folders: List<de.bookmarksplus.data.FolderInfo>, items: List<Item>,
+    store: BookmarkStore, lib: Library, folders: List<FolderHit>, items: List<Item>, limitFolders: Boolean,
     onFolder: (Long) -> Unit, onItem: (Item) -> Unit, onOpen: (Item) -> Unit,
 ) {
+    var showAll by remember(folders) { mutableStateOf(false) }
+    val shown = if (limitFolders && !showAll) folders.take(FOLDER_PREVIEW) else folders
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 16.dp)) {
-        items(folders, key = { "f${it.id}" }) { FolderRow(lib, it) { onFolder(it.id) } }
+        items(shown, key = { "f${it.folder.id}" }) { h -> FolderRow(lib, h.folder, h.parentPath) { onFolder(h.folder.id) } }
+        if (limitFolders && folders.size > FOLDER_PREVIEW) item(key = "more") { MoreFoldersRow(folders.size, showAll) { showAll = !showAll } }
         if (folders.isNotEmpty() && items.isNotEmpty()) item { HorizontalDivider(Modifier.padding(vertical = 4.dp), color = Palette.OutlineSoft) }
         items(items, key = { "b${it.id}" }) { item ->
             ItemRow(store, lib, item, onClick = { onItem(item) }, onOpen = { onOpen(item) })
@@ -371,16 +408,44 @@ private fun ItemList(
 
 @Composable
 private fun CardGrid(
-    store: BookmarkStore, lib: Library, folders: List<de.bookmarksplus.data.FolderInfo>, items: List<Item>,
+    store: BookmarkStore, lib: Library, folders: List<FolderHit>, items: List<Item>, limitFolders: Boolean,
     onFolder: (Long) -> Unit, onItem: (Item) -> Unit,
 ) {
+    var showAll by remember(folders) { mutableStateOf(false) }
+    val shown = if (limitFolders && !showAll) folders.take(FOLDER_PREVIEW) else folders
     LazyVerticalGrid(
         GridCells.Adaptive(160.dp), Modifier.fillMaxSize(),
         contentPadding = PaddingValues(12.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        items(folders, key = { "f${it.id}" }, span = { GridItemSpan(maxLineSpan) }) { FolderRow(lib, it) { onFolder(it.id) } }
+        items(shown, key = { "f${it.folder.id}" }, span = { GridItemSpan(maxLineSpan) }) { h -> FolderRow(lib, h.folder, h.parentPath) { onFolder(h.folder.id) } }
+        if (limitFolders && folders.size > FOLDER_PREVIEW) item(key = "more", span = { GridItemSpan(maxLineSpan) }) { MoreFoldersRow(folders.size, showAll) { showAll = !showAll } }
         items(items, key = { "b${it.id}" }) { item -> ItemCard(store, lib, item) { onItem(item) } }
+    }
+}
+
+/** Folder hits shown before "show all" (search over bookmarks and folders). */
+private const val FOLDER_PREVIEW = 3
+
+@Composable
+private fun MoreFoldersRow(count: Int, showAll: Boolean, onClick: () -> Unit) {
+    Text(
+        if (showAll) str(R.string.search_fewer_folders) else str(R.string.search_more_folders, count),
+        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 66.dp, vertical = 10.dp),
+        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary,
+    )
+}
+
+/** Icon of the search scope: folder + bookmark, bookmark only, folder only. */
+@Composable
+private fun ScopeIcon(searchScope: SearchScope, description: String) {
+    when (searchScope) {
+        SearchScope.Bookmarks -> Icon(Icons.Default.Bookmark, description)
+        SearchScope.Folders -> Icon(Icons.Default.Folder, description)
+        SearchScope.All -> Box(Modifier.size(26.dp)) {
+            Icon(Icons.Default.Folder, description, Modifier.size(19.dp).align(Alignment.TopStart))
+            Icon(Icons.Default.Bookmark, null, Modifier.size(15.dp).align(Alignment.BottomEnd))
+        }
     }
 }
 

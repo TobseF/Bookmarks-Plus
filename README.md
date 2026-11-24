@@ -49,6 +49,7 @@ Browser bookmarks quickly hit their limits: no previews, no tags, sluggish with 
 
 ### 🔍 Find
 - Search in **milliseconds** across title, URL, description and **full text** (README, page text, summary)
+- **Relevance ranking:** title before folder path before tags before other fields; whole words, matching case and the display language first. Finds **folders** too (toggle: both, bookmarks, folders)
 - **Operators:** `#tag` `domain:github.com` `stars:>1k` `added:2024` `is:repo` `is:dead` `-word` …
 - Filter by added, updated, stars, domain and tags
 
@@ -204,7 +205,7 @@ git tag v1.0.0 && git push origin v1.0.0
 | `desktop-linux` | `.deb` and portable `tar.gz` |
 | `android` | signed release APK |
 | `server` | server ZIP |
-| `docker` | build and push the server image: `edge` from the main branch, `<version>` and `latest` for releases |
+| `docker` | build the server image and push it to GHCR and, with Docker Hub secrets, to Docker Hub: `edge` from the main branch, `<version>` and `latest` for releases |
 | `release` | GitHub release with all files and automatic release notes |
 
 The results of every run are attached to the workflow run as artifacts.
@@ -217,14 +218,14 @@ The results of every run are attached to the workflow run as artifacts.
 | `ANDROID_KEYSTORE_PASSWORD` | with keystore | password of the keystore |
 | `ANDROID_KEY_ALIAS` | with keystore | alias of the key |
 | `ANDROID_KEY_PASSWORD` | optional | password of the key, if different from the keystore password |
-| `DOCKER_USERNAME` | Docker Hub only | registry user |
+| `DOCKER_USERNAME` | Docker Hub only | registry user; if set, the image is also pushed there |
 | `DOCKER_PASSWORD` | Docker Hub only | registry access token |
 
 **Variables** (same page, *Variables* tab):
 
 | Variable | Required | Contents |
 |---|---|---|
-| `DOCKER_IMAGE` | optional | target image, e.g. `tobsef/bookmarks-plus-server` (Docker Hub). Default: `ghcr.io/tobsef/bookmarks-plus-server` |
+| `DOCKER_IMAGE` | optional | image name on Docker Hub, default `<DOCKER_USERNAME>/bookmarks-plus-server`. The image always goes to `ghcr.io/tobsef/bookmarks-plus-server` as well |
 | `DOCKER_REGISTRY` | optional | registry host for a custom target, default `docker.io` |
 
 Without Android secrets the APK is signed with the debug key and the run shows a warning. The GitHub Container Registry and the release use the built-in `GITHUB_TOKEN`, no secrets needed. An image on GHCR is private at first and can be made public under *Packages → Package settings*.

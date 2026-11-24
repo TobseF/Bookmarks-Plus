@@ -182,10 +182,11 @@ class BookmarkStore(context: Context) {
         _loaded.value = true
     }
 
-    fun search(lib: Library, filter: Filter): List<Item> {
+    /** Bookmarks and – for a free-text search – folders, ranked by relevance. */
+    fun search(lib: Library, filter: Filter): de.bookmarksplus.data.SearchResult {
         val terms = ParsedQuery.parse(filter.text).terms
-        val hits = if (terms.isEmpty()) emptySet() else index.search(terms)
-        return FilterEngine.apply(lib, filter, System.currentTimeMillis() / 1000, hits)
+        val hits = if (terms.isEmpty()) emptyMap() else index.searchEach(terms)
+        return FilterEngine.search(lib, filter, System.currentTimeMillis() / 1000, hits)
     }
 
     fun iconBytes(hash: String): ByteArray? = runCatching { db.bookmarkQueries.iconByHash(hash).executeAsOneOrNull()?.data_ }.getOrNull()
