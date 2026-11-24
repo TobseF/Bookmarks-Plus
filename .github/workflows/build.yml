@@ -37,7 +37,7 @@ jobs:
       # Skia (Compose UI tests) needs libGL and fonts
       - run: sudo apt-get update -qq && sudo apt-get install -y -qq libgl1 libfontconfig1 fonts-dejavu-core
       - run: ./gradlew :shared:jvmTest :sync:test :server:test :enrich:test :desktop:test --continue
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: test-reports
@@ -61,7 +61,7 @@ jobs:
           mkdir -p dist
           cp desktop/build/compose/binaries/main/deb/*.deb "dist/bookmarks-plus_${V}_amd64.deb"
           tar -C desktop/build/compose/binaries/main/app -czf "dist/bookmarks-plus-${V}-linux-x64.tar.gz" BookmarksPlus
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with: { name: desktop-linux, path: dist/, retention-days: 30 }
 
   desktop-windows:
@@ -80,7 +80,7 @@ jobs:
           New-Item -ItemType Directory -Force dist | Out-Null
           Copy-Item (Get-ChildItem desktop\build\compose\binaries\main\msi\*.msi | Select-Object -First 1).FullName "dist\BookmarksPlus-$v-windows-x64.msi"
           Compress-Archive -Path desktop\build\compose\binaries\main\app\BookmarksPlus -DestinationPath "dist\BookmarksPlus-$v-windows-x64-portable.zip"
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with: { name: desktop-windows, path: dist/, retention-days: 30 }
 
   android:
@@ -116,7 +116,7 @@ jobs:
           mkdir -p dist && cp android/build/outputs/apk/release/android-release.apk "dist/BookmarksPlus-${V}.apk"
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --print-certs "dist/BookmarksPlus-${V}.apk" | head -3
           rm -f "$RUNNER_TEMP/release.jks"
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with: { name: android, path: dist/, retention-days: 30 }
 
   server:
@@ -129,9 +129,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v5
       - run: ./gradlew :server:installDist :server:distZip
       - run: mkdir -p dist && cp server/build/distributions/*.zip "dist/bookmarks-plus-server-${APP_VERSION#v}.zip"
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with: { name: server, path: dist/, retention-days: 30 }
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         with: { name: server-install, path: server/build/install/, retention-days: 1 }
 
   docker:
@@ -143,7 +143,7 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         with: { name: server-install, path: server/build/install/ }
       - run: chmod +x server/build/install/bookmarks-plus-server/bin/*
       - name: Ziel und Tags
@@ -202,7 +202,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v5
+      - uses: actions/download-artifact@v7
         with: { path: dist, pattern: "{desktop-*,android,server}", merge-multiple: true }
       - run: ls -la dist
       - uses: softprops/action-gh-release@v2
